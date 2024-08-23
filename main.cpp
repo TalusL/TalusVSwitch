@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
     InfoL<<"Local mac "<<MacMap::uint64ToMacStr(macLocal);
     // ttl
     auto ttlStr = parser.getOptionValue("ttl");
-    auto sendTtl = 8;
+    uint8_t sendTtl = 8;
     if(!ttlStr.empty()){
         sendTtl = stoi(ttlStr);
     }
