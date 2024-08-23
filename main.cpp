@@ -9,7 +9,7 @@
 int main(int argc, char* argv[]) {
 #ifndef DEBUG
     // 守护进程
-    //startDaemon();
+    startDaemon();
 #endif
     CommandLineParser parser(argc,argv);
 
