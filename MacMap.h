@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <Util/util.h>
 #include <Util/TimeTicker.h>
+#include "Utils.h"
 
 #define MAC_BROADCAST (uint64_t)(0xFFFFFFFFFFFFFFFF << 16)
 
@@ -52,8 +53,10 @@ public:
     static void addMacPeer(uint64_t mac,const sockaddr_storage& peer,uint8_t ttl){
         if( macMap()[mac].ttl < ttl ){
             macMap()[mac].sock = peer;
-            macMap()[mac].ticker.resetTime();
             macMap()[mac].ttl = ttl;
+        }
+        if(compareSockAddr(macMap()[mac].sock,peer)){
+            macMap()[mac].ticker.resetTime();
         }
     }
     static sockaddr_storage getMacPeer(uint64_t mac,bool& got){
