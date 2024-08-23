@@ -11,11 +11,18 @@
 #include <sys/socket.h>
 #include <unordered_map>
 #include <Util/util.h>
+#include <Util/TimeTicker.h>
 
 #define MAC_BROADCAST (uint64_t)(0xFFFFFFFFFFFFFFFF << 16)
 
 class MacMap{
 public:
+    class MacPeer{
+    public:
+        sockaddr_storage sock;
+        uint8_t ttl{};
+        toolkit::Ticker ticker;
+    };
     static uint64_t macToUint64(const std::string& macAddress) {
         uint64_t addr = 0;
         auto *a = reinterpret_cast<uint8_t *>(&addr);
@@ -39,36 +46,35 @@ public:
         }
         return oss.str();
     }
-    static void addMacPeer(const std::string& mac,const sockaddr_storage& peer){
-        macMap()[macToUint64(mac)] = peer;
+    static void addMacPeer(const std::string& mac,const sockaddr_storage& peer,uint8_t ttl){
+        addMacPeer(macToUint64(mac),peer,ttl);
     }
-    static void addMacPeer(uint64_t mac,const sockaddr_storage& peer){
-        macMap()[mac] = peer;
+    static void addMacPeer(uint64_t mac,const sockaddr_storage& peer,uint8_t ttl){
+        if( macMap()[mac].ttl < ttl ){
+            macMap()[mac].sock = peer;
+            macMap()[mac].ticker.resetTime();
+            macMap()[mac].ttl = ttl;
+        }
     }
     static sockaddr_storage getMacPeer(uint64_t mac,bool& got){
         if(macMap().find(mac) != macMap().end()){
             got = true;
-            return macMap()[mac];
+            return macMap()[mac].sock;
         }
         got = false;
-        return macMap()[MAC_BROADCAST];
+        return macMap()[MAC_BROADCAST].sock;
     }
     static sockaddr_storage getMacPeer(const std::string& mac,bool& got){
-        if(macMap().find(macToUint64(mac)) != macMap().end()){
-            got = true;
-            return macMap()[macToUint64(mac)];
-        }
-        got = false;
-        return macMap()[MAC_BROADCAST];
+        return getMacPeer(macToUint64(mac),got);
     }
 
-    static std::unordered_map<uint64_t,sockaddr_storage>& macMap(){
-        static std::unordered_map<uint64_t,sockaddr_storage> _macMap;
+    static std::unordered_map<uint64_t,MacPeer>& macMap(){
+        static std::unordered_map<uint64_t,MacPeer> _macMap;
         return _macMap;
     }
     static void forEach(const std::function<void(uint64_t mac,sockaddr_storage addr)>& cb){
         for (auto & it : macMap()) {
-            cb(it.first,it.second);
+            cb(it.first,it.second.sock);
         }
     }
 };

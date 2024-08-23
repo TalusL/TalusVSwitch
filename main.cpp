@@ -60,12 +60,14 @@ int main() {
 #ifdef DEBUG
             InfoL<<"P:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" - "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer));
 #endif
+            // 获取数据包TTL
+            uint8_t ttl = buf->data()[0];
+
             if( sMac != MAC_BROADCAST ){
-                MacMap::addMacPeer(sMac, pktRecvPeer);
+                MacMap::addMacPeer(sMac, pktRecvPeer,ttl);
             }
 
-            // 获取数据包TTL,TTL为0不转发
-            uint8_t ttl = buf->data()[0];
+            // TTL为0不转发
             if( dMac != macLocal && ttl ){
                 // 从核心节点转发的来的数据(即本节点是客户端)不进行转发
                 // 就是发给本节点的数据，不转发
