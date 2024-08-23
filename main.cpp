@@ -94,6 +94,8 @@ int main(int argc, char* argv[]) {
 #endif
             TapInterface::Instance().write(d2->data(),d2->size());
         }
+        // 获取数据包TTL
+        uint8_t ttl = d2->data()[0];
 
 
         sockaddr_storage pktRecvPeer{};
@@ -101,9 +103,8 @@ int main(int argc, char* argv[]) {
             auto addrLen = addr_len ? addr_len : toolkit::SockUtil::get_sock_len(addr);
             memcpy(&pktRecvPeer, addr, addrLen);
         }
-        poller->async([macLocal,buf, sock, corePeer, sMac, dMac, pktRecvPeer](){
-            // 获取数据包TTL
-            uint8_t ttl = buf->data()[0];
+        poller->async([macLocal,buf, sock, corePeer, sMac, dMac, pktRecvPeer,ttl](){
+
 #ifdef DEBUG
             InfoL<<"P:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)
                   <<" - "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer))<<":"
