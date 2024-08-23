@@ -13,5 +13,9 @@ include_directories(fec)
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 
+if (DEBUG)
+    add_definitions(-DDEBUG)
+endif ()
+
 add_executable(TalusVSwitch main.cpp)
 target_link_libraries(TalusVSwitch tuntap++ tuntap z ZLToolKit_static)
