@@ -8,6 +8,8 @@
 
 #define DEBUG
 
+#define TTL 8
+
 int main() {
     // 获取本地MAC地址
     std::string mac = getMacAddress();
@@ -16,9 +18,9 @@ int main() {
     mac = std::string().append(MAC_VENDOR).append(mac.substr(8,10));
     TapInterface::Instance().hwaddr(mac);
     TapInterface::Instance().up();
-    auto macUint = MacMap::macToUint64(TapInterface::Instance().hwaddr());
+    auto macLocal = MacMap::macToUint64(TapInterface::Instance().hwaddr());
 
-    InfoL<<"LOCAL MAC:"<<MacMap::uint64ToMacStr(macUint);
+    InfoL<<"LOCAL MAC:"<<MacMap::uint64ToMacStr(macLocal);
 
     // 处理线程
     auto poller = toolkit::EventPollerPool::Instance().getPoller();
@@ -28,7 +30,7 @@ int main() {
     // 监听传输
     toolkit::Socket::Ptr sock = toolkit::Socket::createSocket();
     sock->bindUdpSock(9001);
-    sock->setOnRead([macUint, poller, sock, corePeer](toolkit::Buffer::Ptr &buf, struct sockaddr *addr, int addr_len){
+    sock->setOnRead([macLocal, poller, sock, corePeer](toolkit::Buffer::Ptr &buf, struct sockaddr *addr, int addr_len){
         // 解压流量
         auto d2 = decompress(buf);
 
@@ -38,8 +40,8 @@ int main() {
         uint64_t dMac = *(uint64_t*)d2->data();
         dMac = dMac<<16;
 
-        // 符合要求的送入流量虚拟网卡
-        if( ( dMac == macUint || dMac == MAC_BROADCAST ) && sMac != macUint){
+        // 符合要求的流量送入虚拟网卡
+        if( ( dMac == macLocal || dMac == MAC_BROADCAST ) && sMac != macLocal){
 #ifdef DEBUG
             InfoL<<"RX:"<<MacMap::uint64ToMacStr(sMac)<<" - "<<MacMap::uint64ToMacStr(dMac);
 #endif
@@ -51,7 +53,7 @@ int main() {
             auto addrLen = addr_len ? addr_len : toolkit::SockUtil::get_sock_len(addr);
             memcpy(&pktRecvPeer, addr, addrLen);
         }
-        poller->async([macUint,buf, sock, corePeer, sMac, dMac, pktRecvPeer](){
+        poller->async([macLocal,buf, sock, corePeer, sMac, dMac, pktRecvPeer](){
 
 #ifdef DEBUG
             InfoL<<"P:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" - "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer));
@@ -60,7 +62,9 @@ int main() {
                 MacMap::addMacPeer(sMac, pktRecvPeer);
             }
 
-            if(!compareSockAddr(corePeer, pktRecvPeer)&&dMac != macUint){
+            // 获取数据包TTL,TTL为0不转发
+            uint8_t ttl = buf->data()[0];
+            if( dMac != macLocal && ttl ){
                 // 从核心节点转发的来的数据(即本节点是客户端)不进行转发
                 // 就是发给本节点的数据，不转发
                 if( dMac != MAC_BROADCAST ){
@@ -71,6 +75,8 @@ int main() {
 #ifdef DEBUG
                         InfoL<<"FORWARD:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" - "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&forwardPeer));
 #endif
+                        // 转发前TTL减一
+                        buf->data()[0] -= 1;
                         sock->send(buf, reinterpret_cast<sockaddr *>(&forwardPeer
                                                                      ), sizeof(sockaddr_storage),true);
                     }
@@ -81,6 +87,8 @@ int main() {
 #ifdef DEBUG
                             InfoL<<"BROADCAST:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" - "<<MacMap::uint64ToMacStr(mac)<<" "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&addr));
 #endif
+                            // 转发前TTL减一
+                            buf->data()[0] -= 1;
                             sock->send(buf, reinterpret_cast<sockaddr *>(&addr), sizeof(sockaddr_storage),true);
                         }
                     });
@@ -100,6 +108,8 @@ int main() {
         auto data = std::make_shared<toolkit::BufferLikeString>();
         data->assign(reinterpret_cast<const char *>(buf.data()),size);
         auto d1 = compress(data);
+        // 第一Byte定为ttl
+        d1->data()[0] = TTL;
         // 查询mac表并转发数据
         poller->async([data, sock,d1](){
             uint64_t dMac = *(uint64_t*)data->data();

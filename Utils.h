@@ -77,8 +77,8 @@ inline toolkit::Buffer::Ptr compress(const toolkit::Buffer::Ptr & data) {
         return {};
     }
     if(!compressedData->empty()){
-        compressedData->data()[0] = 0x80;
-        compressedData->data()[1] = 0x60;
+        compressedData->data()[0] = 0x00;
+        compressedData->data()[1] = 0x00;
     }
     return compressedData;
 }
