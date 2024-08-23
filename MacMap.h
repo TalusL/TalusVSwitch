@@ -51,12 +51,20 @@ public:
         addMacPeer(macToUint64(mac),peer,ttl);
     }
     static void addMacPeer(uint64_t mac,const sockaddr_storage& peer,uint8_t ttl){
-        if( macMap()[mac].ttl < ttl ){
-            macMap()[mac].sock = peer;
-            macMap()[mac].ticker.resetTime();
-            macMap()[mac].ttl = ttl;
-        }
-        if(compareSockAddr(macMap()[mac].sock,peer)){
+        if(!compareSockAddr(macMap()[mac].sock,peer)){
+            if( macMap()[mac].ttl <= ttl ){
+                macMap()[mac].sock = peer;
+                macMap()[mac].ticker.resetTime();
+                macMap()[mac].ttl = ttl;
+#ifdef DEBUG
+                InfoL<<"Peer:"<<MacMap::uint64ToMacStr(mac)
+                      <<" - "
+                      <<toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&peer))
+                      <<":"
+                      <<toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&peer));
+#endif
+            }
+        }else{
             macMap()[mac].ticker.resetTime();
         }
     }
