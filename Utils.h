@@ -5,12 +5,13 @@
 #ifndef TUNNEL_UTILS_H
 #define TUNNEL_UTILS_H
 
-#include <zlib.h>
-#include <vector>
-#include <string>
+#include <csignal>
 #include <dirent.h>
 #include <fstream>
-
+#include <string>
+#include <sys/wait.h>
+#include <vector>
+#include <zlib.h>
 
 
 inline std::string getMacAddress() {
@@ -124,9 +125,52 @@ inline toolkit::Buffer::Ptr decompress(const toolkit::Buffer::Ptr & compressedDa
     return decompressedData;
 }
 
-bool compareSockAddr(const sockaddr_storage& addr1, const sockaddr_storage& addr2) {
+inline bool compareSockAddr(const sockaddr_storage& addr1, const sockaddr_storage& addr2) {
     return toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&addr1))==toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&addr2))&&
            toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr1))==toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr2));
+}
+
+
+inline void startDaemon() {
+    auto kill_parent_if_failed = true;
+#ifndef _WIN32
+    static pid_t pid;
+    do {
+        pid = fork();
+        if (pid == -1) {
+            WarnL << "fork fail";
+            //休眠1秒再试
+            sleep(1);
+            continue;
+        }
+
+        if (pid == 0) {
+            //子进程
+            return;
+        }
+
+        //父进程,监视子进程是否退出
+        DebugL << "启动子进程:" << pid;
+        signal(SIGINT, [](int) {
+            WarnL << "收到主动退出信号,关闭父进程与子进程";
+            kill(pid, SIGINT);
+            exit(0);
+        });
+
+        do {
+            int status = 0;
+            if (waitpid(pid, &status, 0) >= 0) {
+                WarnL << "子进程退出";
+                //休眠3秒再启动子进程
+                sleep(3);
+                //重启子进程，如果子进程重启失败，那么不应该杀掉守护进程，这样守护进程可以一直尝试重启子进程
+                kill_parent_if_failed = false;
+                break;
+            }
+            DebugL << "waitpid fail";
+        } while (true);
+    } while (true);
+#endif // _WIN32
 }
 
 #endif//TUNNEL_UTILS_H

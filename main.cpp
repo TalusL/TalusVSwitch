@@ -6,11 +6,13 @@
 
 #define MAC_VENDOR "00:0c:01"
 
-#define DEBUG
-
 #define TTL 8
 
 int main() {
+#ifndef DEBUG
+    // 守护进程
+    startDaemon();
+#endif
     // 获取本地MAC地址
     std::string mac = getMacAddress();
     // 构建虚拟接口
