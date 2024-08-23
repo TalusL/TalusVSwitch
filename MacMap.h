@@ -53,6 +53,7 @@ public:
     static void addMacPeer(uint64_t mac,const sockaddr_storage& peer,uint8_t ttl){
         if( macMap()[mac].ttl < ttl ){
             macMap()[mac].sock = peer;
+            macMap()[mac].ticker.resetTime();
             macMap()[mac].ttl = ttl;
         }
         if(compareSockAddr(macMap()[mac].sock,peer)){
