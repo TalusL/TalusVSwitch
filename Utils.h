@@ -16,6 +16,31 @@
 #include <Network/sockutil.h>
 
 
+class CommandLineParser {
+public:
+    CommandLineParser(int argc, char* argv[]) {
+        for (int i = 1; i < argc; ++i) {
+            std::string arg = argv[i];
+            if (arg.size() > 2 && arg[0] == '-' && arg[1]!= '-') {
+                std::string value;
+                if (i + 1 < argc && argv[i + 1][0]!= '-') {
+                    value = argv[i + 1];
+                    ++i;
+                }
+                options[arg.substr(1)] = value;
+            }
+        }
+    }
+
+    std::string getOptionValue(const std::string& option) const {
+        auto it = options.find(option);
+        return it!= options.end()? it->second : "";
+    }
+
+private:
+    std::unordered_map<std::string, std::string> options;
+};
+
 inline std::string getMacAddress() {
     DIR* dir;
     struct dirent* ent;

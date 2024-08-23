@@ -6,29 +6,50 @@
 
 #define MAC_VENDOR "00:0c:01"
 
-#define TTL 8
-
-int main() {
+int main(int argc, char* argv[]) {
 #ifndef DEBUG
     // 守护进程
-    startDaemon();
+    //startDaemon();
 #endif
-    // 获取本地MAC地址
-    std::string mac = getMacAddress();
+    CommandLineParser parser(argc,argv);
+
     // 构建虚拟接口
-    TapInterface::Instance().name("t1");
-    mac = std::string().append(MAC_VENDOR).append(mac.substr(8,10));
+    auto name = parser.getOptionValue("name");
+    name = name.empty()?"tvs0":name;
+    TapInterface::Instance().name(name);
+    InfoL<<"Interface name "<<name;
+
+    // 获取本地MAC地址
+    auto mac = parser.getOptionValue("mac");
+    if(mac.empty()){
+        mac = getMacAddress();
+        mac = std::string().append(MAC_VENDOR).append(mac.substr(8,10));
+    }
     TapInterface::Instance().hwaddr(mac);
     TapInterface::Instance().up();
     auto macLocal = MacMap::macToUint64(TapInterface::Instance().hwaddr());
-
-    InfoL<<"LOCAL MAC:"<<MacMap::uint64ToMacStr(macLocal);
+    InfoL<<"Local mac "<<MacMap::uint64ToMacStr(macLocal);
+    // ttl
+    auto ttlStr = parser.getOptionValue("ttl");
+    auto sendTtl = 8;
+    if(!ttlStr.empty()){
+        sendTtl = stoi(ttlStr);
+    }
+    // 远端地址
+    auto remoteAddr = parser.getOptionValue("remote_addr");
+    // 远端端口
+    auto remotePort = 0;
+    auto remote_port = parser.getOptionValue("remote_port");
+    if(!remote_port.empty()){
+        remotePort = stoi(remote_port);
+    }
+    InfoL<<"Remote "<<remoteAddr<<":"<<remote_port;
 
     // 处理线程
     auto poller = toolkit::EventPollerPool::Instance().getPoller();
     // 增加默认广播地址到MAC表
-    auto corePeer = toolkit::SockUtil::make_sockaddr("10.8.9.244",9001);
-    MacMap::addMacPeer(MAC_BROADCAST, corePeer,TTL);
+    auto corePeer = toolkit::SockUtil::make_sockaddr(remoteAddr.c_str(),remotePort);
+    MacMap::addMacPeer(MAC_BROADCAST, corePeer,sendTtl);
     // 监听传输
     toolkit::Socket::Ptr sock = toolkit::Socket::createSocket();
     sock->bindUdpSock(9001);
@@ -113,7 +134,7 @@ int main() {
         data->assign(reinterpret_cast<const char *>(buf.data()),size);
         auto d1 = compress(data);
         // 第一Byte定为ttl
-        d1->data()[0] = TTL;
+        d1->data()[0] = sendTtl;
         // 查询mac表并转发数据
         poller->async([data, sock,d1](){
             uint64_t dMac = *(uint64_t*)data->data();
