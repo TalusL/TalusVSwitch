@@ -57,6 +57,7 @@ int main(int argc, char* argv[]) {
     if(!remote_port.empty()){
         remotePort = stoi(remote_port);
     }
+    InfoL<<"Remote "<<remoteAddr<<":"<<remotePort;
     // 远端端口
     auto localPort = 9001;
     auto local_port = parser.getOptionValue("local_port");
