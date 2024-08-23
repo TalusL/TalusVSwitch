@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
             TapInterface::Instance().write(d2->data(),d2->size());
         }
         // 获取数据包TTL
-        uint8_t ttl = d2->data()[0];
+        uint8_t ttl = buf->data()[0];
 
 
         sockaddr_storage pktRecvPeer{};
