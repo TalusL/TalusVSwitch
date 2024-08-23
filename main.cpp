@@ -28,7 +28,7 @@ int main() {
     auto poller = toolkit::EventPollerPool::Instance().getPoller();
     // 增加默认广播地址到MAC表
     auto corePeer = toolkit::SockUtil::make_sockaddr("10.8.9.244",9001);
-    MacMap::addMacPeer(MAC_BROADCAST, corePeer);
+    MacMap::addMacPeer(MAC_BROADCAST, corePeer,TTL);
     // 监听传输
     toolkit::Socket::Ptr sock = toolkit::Socket::createSocket();
     sock->bindUdpSock(9001);

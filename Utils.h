@@ -12,6 +12,8 @@
 #include <sys/wait.h>
 #include <vector>
 #include <zlib.h>
+#include <Network/Buffer.h>
+#include <Network/sockutil.h>
 
 
 inline std::string getMacAddress() {
