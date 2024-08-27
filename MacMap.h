@@ -13,6 +13,7 @@
 #include <Util/util.h>
 #include <Util/TimeTicker.h>
 #include "Utils.h"
+#include <Poller/EventPoller.h>
 
 #define MAC_BROADCAST (uint64_t)(0xFFFFFFFFFFFFFFFF << 16)
 
@@ -92,8 +93,11 @@ public:
     }
     static void forEach(const std::function<void(uint64_t mac,sockaddr_storage addr)>& cb){
         std::lock_guard<std::mutex> lck(macMutex());
+        auto poller = toolkit::EventPollerPool::Instance().getPoller();
         for (auto & it : macMap()) {
-            cb(it.first,it.second.sock);
+            poller->async([cb,mac = it.first,addr = it.second.sock](){
+                cb(mac,addr);
+            });
         }
     }
 };
