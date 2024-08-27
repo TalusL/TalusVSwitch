@@ -171,7 +171,7 @@ int main(int argc, char* argv[]) {
             }
 
 
-        });
+        },false);
     });
     // 从端口接收数据
     std::vector<uint8_t> buf;
@@ -196,6 +196,6 @@ int main(int argc, char* argv[]) {
             // 第一Byte定为ttl
             d1->data()[0] = sendTtl;
             Transport::Instance().send(d1, reinterpret_cast<sockaddr *>(&peer), sizeof(sockaddr_storage),true);
-        });
+        },false);
     }
 }
