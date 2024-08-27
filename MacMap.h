@@ -14,6 +14,7 @@
 #include <Util/TimeTicker.h>
 #include "Utils.h"
 #include <Poller/EventPoller.h>
+#include <Util/onceToken.h>
 
 #define MAC_BROADCAST (uint64_t)(0xFFFFFFFFFFFFFFFF << 16)
 
@@ -69,6 +70,13 @@ public:
         }else{
             peerInfo.ticker.resetTime();
         }
+        static toolkit::onceToken tk([](){
+            // 每隔5s检查一次MAC表超时的情况
+            toolkit::EventPollerPool::Instance().getPoller()->doDelayTask(5000,[](){
+                checkMac();
+               return 5000;
+            });
+        });
     }
     static sockaddr_storage getMacPeer(uint64_t mac,bool& got){
         std::lock_guard<std::mutex> lck(macMutex());
@@ -97,6 +105,22 @@ public:
         for (auto & it : macMap()) {
             poller->async([cb,mac = it.first,addr = it.second.sock](){
                 cb(mac,addr);
+            });
+        }
+    }
+    static void removePeer(uint64_t mac){
+        std::lock_guard<std::mutex> lck(macMutex());
+        DebugL<<"RemovePeer:"<<MacMap::uint64ToMacStr(mac);
+        macMap().erase(mac);
+    }
+    static void checkMac(){
+        std::lock_guard<std::mutex> lck(macMutex());
+        auto poller = toolkit::EventPollerPool::Instance().getPoller(false);
+        for (auto & it : macMap()) {
+            poller->async([mac = it.first,time = it.second.ticker.elapsedTime()]{
+                if( time > 20*1000 ){
+                    removePeer(mac);
+                }
             });
         }
     }
