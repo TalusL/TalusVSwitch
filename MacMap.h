@@ -51,6 +51,7 @@ public:
         addMacPeer(macToUint64(mac),peer,ttl);
     }
     static void addMacPeer(uint64_t mac,const sockaddr_storage& peer,uint8_t ttl){
+        std::lock_guard<std::mutex> lck(macMutex());
         auto peerInfo = macMap()[mac];
         if(!compareSockAddr(peerInfo.sock,peer)){
             if( peerInfo.ttl <= ttl ){
@@ -69,6 +70,7 @@ public:
         }
     }
     static sockaddr_storage getMacPeer(uint64_t mac,bool& got){
+        std::lock_guard<std::mutex> lck(macMutex());
         if(macMap().find(mac) != macMap().end()){
             got = true;
             return macMap()[mac].sock;
@@ -84,7 +86,12 @@ public:
         static std::unordered_map<uint64_t,MacPeer> _macMap;
         return _macMap;
     }
+    static std::mutex &macMutex(){
+        static std::mutex mtx;
+        return mtx;
+    }
     static void forEach(const std::function<void(uint64_t mac,sockaddr_storage addr)>& cb){
+        std::lock_guard<std::mutex> lck(macMutex());
         for (auto & it : macMap()) {
             cb(it.first,it.second.sock);
         }
