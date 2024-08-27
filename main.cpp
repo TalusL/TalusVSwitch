@@ -154,7 +154,7 @@ int main(int argc, char* argv[]) {
                 }else{
                     // 广播流量转发，只有核心节点需要,向子节点转发
                     MacMap::forEach([ buf,sMac,dMac, corePeer, pktRecvPeer](uint64_t mac,sockaddr_storage addr){
-                        if( mac != MAC_BROADCAST && !compareSockAddr(corePeer,addr) && !compareSockAddr(pktRecvPeer,addr)){
+                        if( mac != MAC_BROADCAST && !compareSockAddr(pktRecvPeer,addr)){
 
                             DebugL<<"BROADCAST:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" - "<<MacMap::uint64ToMacStr(mac)<<" "
                                   << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer))<<":"
