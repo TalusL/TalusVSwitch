@@ -93,7 +93,7 @@ public:
     }
     static void forEach(const std::function<void(uint64_t mac,sockaddr_storage addr)>& cb){
         std::lock_guard<std::mutex> lck(macMutex());
-        auto poller = toolkit::EventPollerPool::Instance().getPoller();
+        auto poller = toolkit::EventPollerPool::Instance().getPoller(true);
         for (auto & it : macMap()) {
             poller->async([cb,mac = it.first,addr = it.second.sock](){
                 cb(mac,addr);
