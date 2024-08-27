@@ -206,16 +206,18 @@ int main(int argc, char* argv[]) {
             bool got = false;
             auto peer = MacMap::getMacPeer(dMac,got);
 
+            // 第一Byte定为ttl
             d1->data()[0] = sendTtl;
 
             // 远端有效则发送数据，无效则只执行广播
             auto port = toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&peer));
             if(port){
                 DebugL<<"TX:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" -> "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&peer));
-                // 第一Byte定为ttl
+                // 发送数据到远端
                 Transport::Instance().send(d1, reinterpret_cast<sockaddr *>(&peer), sizeof(sockaddr_storage),true);
                 return ;
             }else if( dMac == MAC_BROADCAST ){
+                // 远端地址无效，但目标MAC地址是广播地址，转发广播
                 MacMap::forEach([d1, sMac,dMac](uint64_t mac,sockaddr_storage addr){
                     if( mac != MAC_BROADCAST ){
                         DebugL<<"TX BROADCAST:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" - "<<MacMap::uint64ToMacStr(mac)<<" "
@@ -223,9 +225,7 @@ int main(int argc, char* argv[]) {
                                << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
 
                         Transport::Instance().send(d1, reinterpret_cast<sockaddr *>(&addr), sizeof(sockaddr_storage),true);
-
                     }
-
                 });
             }
 
