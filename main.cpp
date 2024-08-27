@@ -24,9 +24,6 @@ int main(int argc, char* argv[]) {
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", LogLevel::LTrace));
     }
 
-
-
-
     // 构建虚拟接口
     auto name = parser.getOptionValue("name");
     name = name.empty()?"tvs0":name;
