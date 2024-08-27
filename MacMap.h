@@ -54,7 +54,7 @@ public:
     }
     static void addMacPeer(uint64_t mac,const sockaddr_storage& peer,uint8_t ttl){
         std::lock_guard<std::mutex> lck(macMutex());
-        auto peerInfo = macMap()[mac];
+        auto& peerInfo = macMap()[mac];
         if(!compareSockAddr(peerInfo.sock,peer)){
             if( peerInfo.ttl <= ttl ){
                 peerInfo.sock = peer;
@@ -118,7 +118,7 @@ public:
         auto poller = toolkit::EventPollerPool::Instance().getPoller(false);
         for (auto & it : macMap()) {
             poller->async([mac = it.first,time = it.second.ticker.elapsedTime()]{
-                if( time > 20*1000 ){
+                if( time > 20*1000 && mac != MAC_BROADCAST){
                     removePeer(mac);
                 }
             });
