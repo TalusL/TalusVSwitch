@@ -206,6 +206,8 @@ int main(int argc, char* argv[]) {
             bool got = false;
             auto peer = MacMap::getMacPeer(dMac,got);
 
+            DebugL<<"TP:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac);
+
             // 第一Byte定为ttl
             d1->data()[0] = sendTtl;
 
