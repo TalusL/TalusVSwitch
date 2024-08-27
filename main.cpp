@@ -146,13 +146,13 @@ int main(int argc, char* argv[]) {
                               << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&forwardPeer))<<":"
                               << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&forwardPeer));
                         // 转发前TTL减一
-                        buf->data()[0] -= 1;
+                        buf->data()[0] = ttl - 1;
                         Transport::Instance().send(buf, reinterpret_cast<sockaddr *>(&forwardPeer
                                                                      ), sizeof(sockaddr_storage),true);
                     }
                 }else{
                     // 广播流量转发，只有核心节点需要,向子节点转发
-                    MacMap::forEach([ buf,sMac,dMac, corePeer, pktRecvPeer](uint64_t mac,sockaddr_storage addr){
+                    MacMap::forEach([ buf,sMac,dMac, corePeer, pktRecvPeer, ttl](uint64_t mac,sockaddr_storage addr){
                         if( mac != MAC_BROADCAST && !compareSockAddr(pktRecvPeer,addr)){
 
                             DebugL<<"BROADCAST:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" - "<<MacMap::uint64ToMacStr(mac)<<" "
@@ -162,7 +162,7 @@ int main(int argc, char* argv[]) {
                                   << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
 
                             // 转发前TTL减一
-                            buf->data()[0] -= 1;
+                            buf->data()[0] = ttl - 1;
                             Transport::Instance().send(buf, reinterpret_cast<sockaddr *>(&addr), sizeof(sockaddr_storage),true);
                         }
                     });
