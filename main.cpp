@@ -82,6 +82,18 @@ int main(int argc, char* argv[]) {
 
     TapInterface::Instance().up();
 
+    // 远端地址
+    auto addr = parser.getOptionValue("addr");
+    auto netMaskStr = parser.getOptionValue("mask");
+    auto netMask = 24;
+    if(!netMaskStr.empty()){
+        netMask = atoi(netMaskStr.c_str());
+    }
+    if(!addr.empty()){
+        TapInterface::Instance().ip(addr,netMask);
+        InfoL<<"Interface Addr:"<<addr<<"/"<<netMask;
+    }
+
     // ARP保持链路
     ArpKeeper::Instance().start();
 
