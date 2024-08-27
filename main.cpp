@@ -23,6 +23,7 @@ int main(int argc, char* argv[]) {
         // 日志级别
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", LogLevel::LTrace));
     }
+    Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
     // 构建虚拟接口
     auto name = parser.getOptionValue("name");
