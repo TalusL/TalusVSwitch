@@ -21,9 +21,7 @@ public:
         // 每5S向Mac表内的对端发送垃圾ARP广播（目标IP为0.0.0.0），用于维护链路
         EventPollerPool::Instance().getPoller()->doDelayTask(5000,[](){
             MacMap::forEach([](uint64_t mac,sockaddr_storage addr){
-                if( mac != MAC_BROADCAST ){
-                    sendJunkArp(mac,addr);
-                }
+                sendJunkArp(mac,addr);
             });
             return 5000;
         });
