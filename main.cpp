@@ -8,6 +8,8 @@
 
 #define MAC_VENDOR "00:0c:01"
 
+#define INVALID_REMOTE "0.0.0.0"
+
 int main(int argc, char* argv[]) {
 
     CommandLineParser parser(argc,argv);
@@ -63,7 +65,7 @@ int main(int argc, char* argv[]) {
     // 远端地址
     auto remoteAddr = parser.getOptionValue("remote_addr");
     if(remoteAddr.empty()){
-        remoteAddr = "0.0.0.0";
+        remoteAddr = INVALID_REMOTE;
     }
     // 远端端口
     auto remotePort = 0;
@@ -204,10 +206,29 @@ int main(int argc, char* argv[]) {
             bool got = false;
             auto peer = MacMap::getMacPeer(dMac,got);
 
-            DebugL<<"TX:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" -> "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&peer));
-            // 第一Byte定为ttl
             d1->data()[0] = sendTtl;
-            Transport::Instance().send(d1, reinterpret_cast<sockaddr *>(&peer), sizeof(sockaddr_storage),true);
+
+            // 远端有效则发送数据，无效则只执行广播
+            auto port = toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&peer));
+            if(port){
+                DebugL<<"TX:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" -> "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&peer));
+                // 第一Byte定为ttl
+                Transport::Instance().send(d1, reinterpret_cast<sockaddr *>(&peer), sizeof(sockaddr_storage),true);
+                return ;
+            }else if( dMac == MAC_BROADCAST ){
+                MacMap::forEach([d1, sMac,dMac](uint64_t mac,sockaddr_storage addr){
+                    if( mac != MAC_BROADCAST ){
+                        DebugL<<"TX BROADCAST:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" - "<<MacMap::uint64ToMacStr(mac)<<" "
+                               << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&addr))<<":"
+                               << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
+
+                        Transport::Instance().send(d1, reinterpret_cast<sockaddr *>(&addr), sizeof(sockaddr_storage),true);
+
+                    }
+
+                });
+            }
+
         },false);
     }
 }
