@@ -56,13 +56,12 @@ public:
                 macMap()[mac].sock = peer;
                 macMap()[mac].ticker.resetTime();
                 macMap()[mac].ttl = ttl;
-#ifdef DEBUG
-                InfoL<<"Peer:"<<MacMap::uint64ToMacStr(mac)
+
+                DebugL<<"Peer:"<<MacMap::uint64ToMacStr(mac)
                       <<" - "
                       <<toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&peer))
                       <<":"
                       <<toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&peer));
-#endif
             }
         }else{
             macMap()[mac].ticker.resetTime();
