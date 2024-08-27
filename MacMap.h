@@ -51,11 +51,12 @@ public:
         addMacPeer(macToUint64(mac),peer,ttl);
     }
     static void addMacPeer(uint64_t mac,const sockaddr_storage& peer,uint8_t ttl){
-        if(!compareSockAddr(macMap()[mac].sock,peer)){
-            if( macMap()[mac].ttl <= ttl ){
-                macMap()[mac].sock = peer;
-                macMap()[mac].ticker.resetTime();
-                macMap()[mac].ttl = ttl;
+        auto peerInfo = macMap()[mac];
+        if(!compareSockAddr(peerInfo.sock,peer)){
+            if( peerInfo.ttl <= ttl ){
+                peerInfo.sock = peer;
+                peerInfo.ticker.resetTime();
+                peerInfo.ttl = ttl;
 
                 DebugL<<"Peer:"<<MacMap::uint64ToMacStr(mac)
                       <<" - "
@@ -64,7 +65,7 @@ public:
                       <<toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&peer));
             }
         }else{
-            macMap()[mac].ticker.resetTime();
+            peerInfo.ticker.resetTime();
         }
     }
     static sockaddr_storage getMacPeer(uint64_t mac,bool& got){
