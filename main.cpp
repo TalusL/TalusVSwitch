@@ -92,6 +92,8 @@ int main(int argc, char* argv[]) {
     // 监听传输
     Transport::Instance().start(localPort);
     Transport::Instance().setOnRead([macLocal, poller, corePeer](toolkit::Buffer::Ptr &buf, struct sockaddr *addr, int addr_len){
+        // 获取数据包TTL
+        uint8_t ttl = buf->data()[0];
         // 解压流量
         auto d2 = decompress(buf);
 
@@ -109,9 +111,6 @@ int main(int argc, char* argv[]) {
                     << toolkit::SockUtil::inet_port(addr);
             TapInterface::Instance().write(d2->data(),d2->size());
         }
-        // 获取数据包TTL
-        uint8_t ttl = buf->data()[0];
-
 
         sockaddr_storage pktRecvPeer{};
         if (addr) {
