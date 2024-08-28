@@ -17,5 +17,5 @@ if (DEBUG)
     add_definitions(-DDEBUG)
 endif ()
 
-add_executable(TalusVSwitch main.cpp)
+add_executable(TalusVSwitch main.cpp VSwitch.cpp)
 target_link_libraries(TalusVSwitch tuntap++ tuntap z ZLToolKit_static)
