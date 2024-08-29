@@ -96,8 +96,7 @@ int main(int argc, char* argv[]) {
 
     TapInterface::Instance().up();
 
-    // ARP保持链路
-    ArpKeeper::Instance().start();
+
     // 增加默认广播地址到MAC表
     auto corePeer = toolkit::SockUtil::make_sockaddr(remoteAddr.c_str(),remotePort);
     MacMap::addMacPeer(MAC_BROADCAST, corePeer,sendTtl);
@@ -107,6 +106,9 @@ int main(int argc, char* argv[]) {
 
     // 启动交换
     VSwitch::start(corePeer,macLocal,sendTtl);
+
+    // ARP保持链路
+    ArpKeeper::Instance().start();
 
     // 设置退出信号处理函数
     static semaphore sem;

@@ -20,9 +20,13 @@ public:
     void setOnRead(const toolkit::Socket::onReadCB& cb){
         _sock->setOnRead(cb);
     }
-    template <typename... ArgsType>
-    ssize_t send(ArgsType &&...args){
-        return _sock->send(std::forward<ArgsType>(args)...);
+    void send(const toolkit::Buffer::Ptr& buf,const sockaddr_storage& addr, socklen_t addr_len = 0, bool try_flush = true){
+        getPoller()->async([=](){
+            Instance()._sock->send(buf, reinterpret_cast<sockaddr*>(const_cast<sockaddr_storage*>(&addr)),addr_len,try_flush);
+        });
+    }
+    toolkit::EventPoller::Ptr getPoller(){
+        return _sock->getPoller();
     }
 protected:
     toolkit::Socket::Ptr _sock;

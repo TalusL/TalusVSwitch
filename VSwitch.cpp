@@ -77,8 +77,7 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
                            << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&forwardPeer));
                     // 转发前TTL减一
                     buf->data()[0] = ttl - 1;
-                    Transport::Instance().send(buf, reinterpret_cast<sockaddr *>(&forwardPeer
-                                                                                 ), sizeof(sockaddr_storage),true);
+                    Transport::Instance().send(buf,forwardPeer, sizeof(sockaddr_storage),true);
                 }
             }else{
                 // 广播流量转发，只有核心节点需要,向子节点转发
@@ -93,7 +92,7 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
 
                         // 转发前TTL减一
                         buf->data()[0] = ttl - 1;
-                        Transport::Instance().send(buf, reinterpret_cast<sockaddr *>(&addr), sizeof(sockaddr_storage),true);
+                        Transport::Instance().send(buf,addr, sizeof(sockaddr_storage),true);
                     }
                 });
             }
@@ -143,7 +142,7 @@ void VSwitch::pollInterface(uint8_t sendTtl,const std::shared_ptr<std::vector<ui
     if(port){
         DebugL<<"TX:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" -> "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&peer));
         // 发送数据到远端
-        Transport::Instance().send(d1, reinterpret_cast<sockaddr *>(&peer), sizeof(sockaddr_storage),true);
+        Transport::Instance().send(d1, peer, sizeof(sockaddr_storage),true);
         return ;
     }else if( dMac == MAC_BROADCAST ){
         // 远端地址无效，但目标MAC地址是广播地址，转发广播
@@ -152,8 +151,7 @@ void VSwitch::pollInterface(uint8_t sendTtl,const std::shared_ptr<std::vector<ui
                 DebugL<<"TX BROADCAST:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" - "<<MacMap::uint64ToMacStr(mac)<<" "
                        << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&addr))<<":"
                        << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
-
-                Transport::Instance().send(d1, reinterpret_cast<sockaddr *>(&addr), sizeof(sockaddr_storage),true);
+                Transport::Instance().send(d1, addr, sizeof(sockaddr_storage),true);
             }
         });
     }

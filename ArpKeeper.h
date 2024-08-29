@@ -19,7 +19,7 @@ public:
     }
     void start(){
         // 每5S向Mac表内的对端发送垃圾ARP广播（目标IP为0.0.0.0），用于维护链路
-        EventPollerPool::Instance().getPoller()->doDelayTask(5000,[](){
+        Transport::Instance().getPoller()->doDelayTask(5000,[](){
             MacMap::forEach([](uint64_t mac,sockaddr_storage addr){
             auto port = toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
                 if(port) {
@@ -58,7 +58,7 @@ public:
               <<toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&addr))<<":"
               << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
 
-        Transport::Instance().send(d2,reinterpret_cast<sockaddr *>(&addr), sizeof(sockaddr_storage), true);
+        Transport::Instance().send(d2,addr, sizeof(sockaddr_storage), true);
     }
 };
 
