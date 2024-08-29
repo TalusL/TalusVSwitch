@@ -17,12 +17,19 @@ public:
         _sock = toolkit::Socket::createSocket();
         _sock->bindUdpSock(port,local_ip,enable_reuse);
     }
-    void setOnRead(const toolkit::Socket::onReadCB& cb){
-        _sock->setOnRead(cb);
+    void setOnRead(const std::function<void(toolkit::Buffer::Ptr &buf, struct sockaddr *addr, int addr_len,uint8_t ttl)>& cb){
+        _sock->setOnRead([cb](toolkit::Buffer::Ptr &buf, struct sockaddr *addr, int addr_len){
+            auto dd = decompress(buf);
+            if(cb){
+                cb(dd,addr,addr_len,buf->data()[0]);
+            }
+        });
     }
-    void send(const toolkit::Buffer::Ptr& buf,const sockaddr_storage& addr, socklen_t addr_len = 0, bool try_flush = true){
+    void send(const toolkit::Buffer::Ptr& buf,const sockaddr_storage& addr, socklen_t addr_len, bool try_flush ,uint8_t ttl){
+        auto cd = compress(buf);
+        cd->data()[0] = ttl;
         getPoller()->async([=](){
-            Instance()._sock->send(buf, reinterpret_cast<sockaddr*>(const_cast<sockaddr_storage*>(&addr)),addr_len,try_flush);
+            Instance()._sock->send(cd, reinterpret_cast<sockaddr*>(const_cast<sockaddr_storage*>(&addr)),addr_len,try_flush);
         });
     }
     toolkit::EventPoller::Ptr getPoller(){

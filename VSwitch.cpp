@@ -27,16 +27,12 @@ void VSwitch::start(const sockaddr_storage& corePeer,uint64_t macLocal,uint8_t s
     },false);
 }
 void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLocal) {
-    Transport::Instance().setOnRead([macLocal, corePeer](toolkit::Buffer::Ptr &buf, struct sockaddr *addr, int addr_len){
-        // 获取数据包TTL
-        uint8_t ttl = buf->data()[0];
-        // 解压流量
-        auto d2 = decompress(buf);
+    Transport::Instance().setOnRead([macLocal, corePeer](toolkit::Buffer::Ptr &buf, struct sockaddr *addr, int addr_len,uint8_t ttl){
 
-        uint64_t sMac = *(uint64_t*)(d2->data()+6);
+        uint64_t sMac = *(uint64_t*)(buf->data()+6);
         sMac = sMac<<16;
         // 获取目标MAC
-        uint64_t dMac = *(uint64_t*)d2->data();
+        uint64_t dMac = *(uint64_t*)buf->data();
         dMac = dMac<<16;
 
         sockaddr_storage pktRecvPeer{};
@@ -56,7 +52,7 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
             DebugL<<"RX:"<<MacMap::uint64ToMacStr(sMac)<<" - "<<MacMap::uint64ToMacStr(dMac) <<" "
                    << toolkit::SockUtil::inet_ntoa(addr)<<":"
                    << toolkit::SockUtil::inet_port(addr);
-            TapInterface::Instance().write(d2->data(),d2->size());
+            TapInterface::Instance().write(buf->data(),buf->size());
         }
 
 
@@ -76,8 +72,7 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
                            << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&forwardPeer))<<":"
                            << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&forwardPeer));
                     // 转发前TTL减一
-                    buf->data()[0] = ttl - 1;
-                    Transport::Instance().send(buf,forwardPeer, sizeof(sockaddr_storage),true);
+                    Transport::Instance().send(buf,forwardPeer, sizeof(sockaddr_storage),true,ttl-1);
                 }
             }else{
                 // 广播流量转发，只有核心节点需要,向子节点转发
@@ -91,8 +86,7 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
                                << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
 
                         // 转发前TTL减一
-                        buf->data()[0] = ttl - 1;
-                        Transport::Instance().send(buf,addr, sizeof(sockaddr_storage),true);
+                        Transport::Instance().send(buf,addr, sizeof(sockaddr_storage),true,ttl-1);
                     }
                 });
             }
@@ -123,7 +117,6 @@ void VSwitch::pollInterface(uint8_t sendTtl,const std::shared_ptr<std::vector<ui
     // 压缩数据
     auto data = std::make_shared<toolkit::BufferLikeString>();
     data->assign(reinterpret_cast<const char *>(buf->data()),size);
-    auto d1 = compress(data);
     // 查询mac表并转发数据
     uint64_t dMac = *(uint64_t*)data->data();
     dMac = dMac<<16;
@@ -134,24 +127,22 @@ void VSwitch::pollInterface(uint8_t sendTtl,const std::shared_ptr<std::vector<ui
 
     DebugL<<"TP:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac);
 
-    // 第一Byte定为ttl
-    d1->data()[0] = sendTtl;
 
     // 远端有效则发送数据，无效则只执行广播
     auto port = toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&peer));
     if(port){
         DebugL<<"TX:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" -> "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&peer));
         // 发送数据到远端
-        Transport::Instance().send(d1, peer, sizeof(sockaddr_storage),true);
+        Transport::Instance().send(data, peer, sizeof(sockaddr_storage),true,sendTtl);
         return ;
     }else if( dMac == MAC_BROADCAST ){
         // 远端地址无效，但目标MAC地址是广播地址，转发广播
-        MacMap::forEach([d1, sMac,dMac](uint64_t mac,sockaddr_storage addr){
+        MacMap::forEach([data, sMac,dMac, sendTtl](uint64_t mac,sockaddr_storage addr){
             if( mac != MAC_BROADCAST ){
                 DebugL<<"TX BROADCAST:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)<<" - "<<MacMap::uint64ToMacStr(mac)<<" "
                        << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&addr))<<":"
                        << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
-                Transport::Instance().send(d1, addr, sizeof(sockaddr_storage),true);
+                Transport::Instance().send(data, addr, sizeof(sockaddr_storage),true,sendTtl);
             }
         });
     }

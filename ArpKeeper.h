@@ -48,13 +48,12 @@ public:
         // 发送ARP
         auto buf = std::make_shared<BufferLikeString>();
         buf->append(arpData, sizeof(arpData));
-        auto d2 = compress(buf);
-        d2->data()[0] = ttl;
+
         DebugL<<"Send ARP to "<<MacMap::uint64ToMacStr(macLocal)<<" -> "<<MacMap::uint64ToMacStr(mac)<<" "
               <<toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&addr))<<":"
               << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
 
-        Transport::Instance().send(d2,addr, sizeof(sockaddr_storage), true);
+        Transport::Instance().send(buf,addr, sizeof(sockaddr_storage), true,ttl);
     }
 };
 
