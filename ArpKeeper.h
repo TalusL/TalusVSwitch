@@ -13,17 +13,13 @@ using namespace toolkit;
 
 class ArpKeeper {
 public:
-    static ArpKeeper& Instance(){
-        static ArpKeeper arpKeeper;
-        return arpKeeper;
-    }
-    void start(){
+    static void start(uint8_t ttl){
         // 每5S向Mac表内的对端发送垃圾ARP广播（目标IP为0.0.0.0），用于维护链路
-        Transport::Instance().getPoller()->doDelayTask(5000,[](){
-            MacMap::forEach([](uint64_t mac,sockaddr_storage addr){
+        Transport::Instance().getPoller()->doDelayTask(5000,[ttl](){
+            MacMap::forEach([ttl](uint64_t mac,sockaddr_storage addr){
             auto port = toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
                 if(port) {
-                    sendJunkArp(mac, addr);
+                    sendJunkArp(mac, addr,ttl);
                 }
             });
             return 5000;
@@ -34,7 +30,7 @@ public:
      * @param mac 本地mac
      * @param addr 远端地址、端口
      */
-    static void sendJunkArp(uint64_t mac,sockaddr_storage addr){
+    static void sendJunkArp(uint64_t mac,sockaddr_storage addr,uint8_t ttl){
         // 空白的ARP 二层报文
         char arpData[] = {
                 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x08,0x06,0x00,0x01,
@@ -53,7 +49,7 @@ public:
         auto buf = std::make_shared<BufferLikeString>();
         buf->append(arpData, sizeof(arpData));
         auto d2 = compress(buf);
-
+        d2->data()[0] = ttl;
         DebugL<<"Send ARP to "<<MacMap::uint64ToMacStr(macLocal)<<" -> "<<MacMap::uint64ToMacStr(mac)<<" "
               <<toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&addr))<<":"
               << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));

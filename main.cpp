@@ -108,7 +108,7 @@ int main(int argc, char* argv[]) {
     VSwitch::start(corePeer,macLocal,sendTtl);
 
     // ARP保持链路
-    ArpKeeper::Instance().start();
+    ArpKeeper::start(sendTtl);
 
     // 设置退出信号处理函数
     static semaphore sem;
