@@ -119,9 +119,5 @@ int main(int argc, char* argv[]) {
     }); // 设置退出信号
     sem.wait();
 
-    //停止交换
-    VSwitch::stop();
-
-    std::this_thread::sleep_for(std::chrono::seconds(2));
 
 }
