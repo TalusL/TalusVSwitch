@@ -11,11 +11,13 @@
 
 #define INVALID_REMOTE "0.0.0.0"
 
+volatile bool debug = false;
+
 int main(int argc, char* argv[]) {
 
     CommandLineParser parser(argc,argv);
 
-    bool debug = atoi(parser.getOptionValue("debug").c_str());
+    debug = atoi(parser.getOptionValue("debug").c_str());
 
     if(!debug){
         // 守护进程
