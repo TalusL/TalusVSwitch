@@ -1,11 +1,11 @@
 
-#include "TapInterface.h"
+#include "LinkKeeper.h"
 #include "MacMap.h"
-#include <Network/Socket.h>
-#include "Utils.h"
-#include "ArpKeeper.h"
+#include "TapInterface.h"
 #include "Transport.h"
+#include "Utils.h"
 #include "VSwitch.h"
+#include <Network/Socket.h>
 
 #define MAC_VENDOR "00:0c:01"
 
@@ -108,7 +108,7 @@ int main(int argc, char* argv[]) {
     VSwitch::start(corePeer,macLocal,sendTtl);
 
     // ARP保持链路
-    ArpKeeper::start(sendTtl);
+    LinkKeeper::start(sendTtl);
 
     // 设置退出信号处理函数
     static semaphore sem;

@@ -47,7 +47,7 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
                << (int)ttl;
 
         // 符合要求的流量送入虚拟网卡
-        if( ( dMac == macLocal || dMac == MAC_BROADCAST ) && sMac != macLocal){
+        if( ( dMac == macLocal || dMac == MAC_BROADCAST ) && sMac != macLocal && buf->size() > 12){
 
             DebugL<<"RX:"<<MacMap::uint64ToMacStr(sMac)<<" - "<<MacMap::uint64ToMacStr(dMac) <<" "
                    << toolkit::SockUtil::inet_ntoa(addr)<<":"
