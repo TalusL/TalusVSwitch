@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
 
     // mtu
     auto mtuStr = parser.getOptionValue("mtu");
-    int mtu = 1450;
+    int mtu = 1420;
     if(!mtuStr.empty()){
         mtu = stoi(mtuStr);
     }
