@@ -149,10 +149,22 @@ inline toolkit::Buffer::Ptr decompress(const toolkit::Buffer::Ptr & compressedDa
 }
 
 inline bool compareSockAddr(const sockaddr_storage& addr1, const sockaddr_storage& addr2) {
-    return toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&addr1))==toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&addr2))&&
-           toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr1))==toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr2));
-}
+    if (addr1.ss_family != addr2.ss_family) {
+        return false;
+    }
 
+    if (addr1.ss_family == AF_INET) {
+        const auto* ipv4Addr1 = reinterpret_cast<const sockaddr_in*>(&addr1);
+        const auto* ipv4Addr2 = reinterpret_cast<const sockaddr_in*>(&addr2);
+        return (ipv4Addr1->sin_addr.s_addr == ipv4Addr2->sin_addr.s_addr && ipv4Addr1->sin_port == ipv4Addr2->sin_port);
+    } else if (addr1.ss_family == AF_INET6) {
+        const auto* ipv6Addr1 = reinterpret_cast<const sockaddr_in6*>(&addr1);
+        const auto* ipv6Addr2 = reinterpret_cast<const sockaddr_in6*>(&addr2);
+        return (memcmp(&ipv6Addr1->sin6_addr, &ipv6Addr2->sin6_addr, sizeof(in6_addr)) == 0 && ipv6Addr1->sin6_port == ipv6Addr2->sin6_port);
+    }
+
+    return false;
+}
 
 inline void startDaemon() {
     auto kill_parent_if_failed = true;

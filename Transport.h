@@ -17,22 +17,31 @@ public:
         _sock = toolkit::Socket::createSocket();
         _sock->bindUdpSock(port,local_ip,enable_reuse);
     }
-    void setOnRead(const std::function<void(toolkit::Buffer::Ptr &buf, struct sockaddr *addr, int addr_len,uint8_t ttl)>& cb){
-        _sock->setOnRead([cb](toolkit::Buffer::Ptr &buf, struct sockaddr *addr, int addr_len){
+    void setOnRead(const std::function<void(const toolkit::Buffer::Ptr &buf,const sockaddr_storage& pktRecvPeer, int addr_len,uint8_t ttl)>& cb){
+        auto poller = getPoller();
+        _sock->setOnRead([cb,poller](toolkit::Buffer::Ptr &buf, struct sockaddr *addr, int addr_len){
+            sockaddr_storage pktRecvPeer{};
+            if (addr) {
+                auto addrLen = addr_len ? addr_len : toolkit::SockUtil::get_sock_len(addr);
+                memcpy(&pktRecvPeer, addr, addrLen);
+            }
             uint8_t ttl = buf->data()[0] ^ buf->data()[buf->size()-1];
             auto dd = decompress(buf);
             if(cb){
-                cb(dd,addr,addr_len,ttl);
+                cb(dd,pktRecvPeer,addr_len,ttl);
             }
         });
     }
     void send(const toolkit::Buffer::Ptr& buf,const sockaddr_storage& addr, socklen_t addr_len, bool try_flush ,uint8_t ttl){
-        auto cd = compress(buf);
-        cd->data()[0] = (char)(ttl^cd->data()[cd->size()-1]);
-        cd->data()[1] = cd->data()[cd->size()-2];
-        getPoller()->async([=](){
-            Instance()._sock->send(cd, reinterpret_cast<sockaddr*>(const_cast<sockaddr_storage*>(&addr)),addr_len,try_flush);
-        });
+        auto poller = getPoller();
+        toolkit::EventPollerPool::Instance().getPoller()->async([poller, buf, ttl, addr, addr_len, try_flush](){
+            auto cd = compress(buf);
+            cd->data()[0] = (char)(ttl^cd->data()[cd->size()-1]);
+            cd->data()[1] = cd->data()[cd->size()-2];
+            poller->async([=](){
+                Instance()._sock->send(cd, reinterpret_cast<sockaddr*>(const_cast<sockaddr_storage*>(&addr)),addr_len,try_flush);
+            },false);
+        },false);
     }
     toolkit::EventPoller::Ptr getPoller(){
         return _sock->getPoller();

@@ -23,23 +23,19 @@ void VSwitch::start(const sockaddr_storage& corePeer,uint64_t macLocal,uint8_t s
     buf->resize(1024*1024);
     m_thread = std::make_shared<toolkit::ThreadPool>(1, toolkit::ThreadPool::Priority::PRIORITY_HIGHEST, true, true, "PollingInterface");
     m_thread->async([=](){
-        pollInterface(sendTtl,buf);
+        while(m_running){
+            pollInterface(sendTtl,buf);
+        }
     },false);
 }
 void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLocal) {
-    Transport::Instance().setOnRead([macLocal, corePeer](toolkit::Buffer::Ptr &buf, struct sockaddr *addr, int addr_len,uint8_t ttl){
+    Transport::Instance().setOnRead([macLocal, corePeer](const toolkit::Buffer::Ptr &buf, const sockaddr_storage& pktRecvPeer, int addr_len,uint8_t ttl){
 
         uint64_t sMac = *(uint64_t*)(buf->data()+6);
         sMac = sMac<<16;
         // 获取目标MAC
         uint64_t dMac = *(uint64_t*)buf->data();
         dMac = dMac<<16;
-
-        sockaddr_storage pktRecvPeer{};
-        if (addr) {
-            auto addrLen = addr_len ? addr_len : toolkit::SockUtil::get_sock_len(addr);
-            memcpy(&pktRecvPeer, addr, addrLen);
-        }
 
         DebugL<<"P:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)
                <<" - "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer))<<":"
@@ -50,8 +46,8 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
         if( ( dMac == macLocal || dMac == MAC_BROADCAST ) && sMac != macLocal && buf->size() > 12){
 
             DebugL<<"RX:"<<MacMap::uint64ToMacStr(sMac)<<" - "<<MacMap::uint64ToMacStr(dMac) <<" "
-                   << toolkit::SockUtil::inet_ntoa(addr)<<":"
-                   << toolkit::SockUtil::inet_port(addr);
+                   << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer))<<":"
+                   << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&pktRecvPeer));
             TapInterface::Instance().write(buf->data(),buf->size());
         }
 
@@ -102,12 +98,6 @@ void VSwitch::stop() {
     Transport::Instance().setOnRead(nullptr);
 }
 void VSwitch::pollInterface(uint8_t sendTtl,const std::shared_ptr<std::vector<uint8_t>>& buf) {
-    if(m_running){
-        m_thread->async([=](){
-            pollInterface(sendTtl,buf);
-        },false);
-    }
-
     // 从虚拟网卡接收数据
     size_t len = buf->size();
     int size = TapInterface::Instance().read(buf->data(),len);
