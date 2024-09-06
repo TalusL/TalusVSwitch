@@ -79,7 +79,14 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
                 }
             }else{
                 // 广播流量转发，只有核心节点需要,向子节点转发
-                MacMap::forEach([ buf,sMac,dMac, corePeer, pktRecvPeer, ttl](uint64_t mac,sockaddr_storage addr){
+                std::shared_ptr<std::list<sockaddr_storage>> sendPeers = std::make_shared<std::list<sockaddr_storage>>();
+                MacMap::forEach([ buf,sMac,dMac, corePeer, pktRecvPeer, ttl,sendPeers](uint64_t mac,sockaddr_storage addr){
+                    auto iter = std::find_if(sendPeers->begin(), sendPeers->end(), [addr](const sockaddr_storage& addr2){
+                        return compareSockAddr(addr, addr2);
+                    });
+                    if (iter!= sendPeers->end()) {
+                        return;
+                    }
                     if( mac != MAC_BROADCAST && !compareSockAddr(pktRecvPeer,addr)){
 
                         if(Config::debug) {
@@ -92,6 +99,7 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
 
                         // 转发前TTL减一
                         Transport::Instance().send(buf,addr, sizeof(sockaddr_storage),true,ttl-1);
+                        sendPeers->push_back(addr);
                     }
                 });
             }
