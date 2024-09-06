@@ -61,7 +61,7 @@ public:
                 peerInfo.ticker.resetTime();
                 peerInfo.ttl = ttl;
 
-                DebugL<<"Peer:"<<MacMap::uint64ToMacStr(mac)
+                InfoL<<"Peer:"<<MacMap::uint64ToMacStr(mac)
                       <<" - "
                       <<toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&peer))
                       <<":"
@@ -110,7 +110,7 @@ public:
     }
     static void removePeer(uint64_t mac){
         std::lock_guard<std::mutex> lck(macMutex());
-        DebugL<<"RemovePeer:"<<MacMap::uint64ToMacStr(mac);
+        InfoL<<"RemovePeer:"<<MacMap::uint64ToMacStr(mac);
         macMap().erase(mac);
     }
     static void checkMac(){
