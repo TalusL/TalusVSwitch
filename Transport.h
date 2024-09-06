@@ -28,15 +28,15 @@ public:
             }
             uint8_t ttl = buf->data()[0] ^ buf->data()[buf->size()-1];
             auto dd = decompress(buf);
-            if(cb){
+            uint64_t dMac = *(uint64_t*)dd->data();
+            dMac = dMac<<16;
+            if(cb&&dMac){
                 cb(dd,pktRecvPeer,addr_len,ttl);
             }
-            toolkit::EventPollerPool::Instance().getPoller()->async([buf,pktRecvPeer,addr_len,ttl](){
+            toolkit::EventPollerPool::Instance().getPoller()->async([dd,pktRecvPeer,addr_len,ttl,dMac](){
                 // 目标MAC是0,应用内部控制信息
-                uint64_t dMac = *(uint64_t*)buf->data();
-                dMac = dMac<<16;
                 if( dMac == 0 ){
-                    VSCtrlHelper::Instance().handleCmd(buf, pktRecvPeer, addr_len, ttl);
+                    VSCtrlHelper::Instance().handleCmd(dd, pktRecvPeer, addr_len, ttl);
                 }
             },false);
         });

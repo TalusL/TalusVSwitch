@@ -8,25 +8,24 @@
 #include "Transport.h"
 #include "Utils.h"
 #include <memory>
+#include "Config.h"
 
 volatile bool VSwitch::m_running = false;
 std::shared_ptr<toolkit::ThreadPool> VSwitch::m_thread;
 
-extern volatile bool debug;
-
-void VSwitch::start(const sockaddr_storage& corePeer,uint64_t macLocal,uint8_t sendTtl) {
+void VSwitch::start() {
     m_running = true;
     // 处理线程
     auto poller = toolkit::EventPollerPool::Instance().getPoller();
     // 分发远程输入
-    setupOnPeerInput(corePeer,macLocal);
+    setupOnPeerInput(Config::corePeer,Config::macLocal);
     // 分发本地输入
     std::shared_ptr<std::vector<uint8_t>> buf = std::make_shared<std::vector<uint8_t>>();
     buf->resize(1024*1024);
     m_thread = std::make_shared<toolkit::ThreadPool>(1, toolkit::ThreadPool::Priority::PRIORITY_HIGHEST, true, true, "PollingInterface");
     m_thread->async([=](){
         while(m_running){
-            pollInterface(sendTtl,buf);
+            pollInterface(Config::sendTtl,buf);
         }
     },false);
 }
@@ -39,7 +38,7 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
         uint64_t dMac = *(uint64_t*)buf->data();
         dMac = dMac<<16;
 
-        if(debug){
+        if(Config::debug){
             DebugL<<"P:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)
                    <<" - "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer))<<":"
                    << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&pktRecvPeer))<<" "
@@ -50,7 +49,7 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
         // 符合要求的流量送入虚拟网卡
         if( ( dMac == macLocal || dMac == MAC_BROADCAST ) && sMac != macLocal && buf->size() > 12){
 
-            if(debug) {
+            if(Config::debug) {
                 DebugL << "RX:" << MacMap::uint64ToMacStr(sMac) << " - " << MacMap::uint64ToMacStr(dMac) << " "
                        << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer)) << ":"
                        << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&pktRecvPeer));
@@ -68,7 +67,7 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
                 bool got = false;
                 auto forwardPeer = MacMap::getMacPeer(dMac,got);
                 if(got){
-                    if(debug) {
+                    if(Config::debug) {
                         DebugL << "FORWARD:" << MacMap::uint64ToMacStr(sMac) << " -> " << MacMap::uint64ToMacStr(dMac) << " - "
                                << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer)) << ":"
                                << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&pktRecvPeer)) << " -> "
@@ -83,7 +82,7 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
                 MacMap::forEach([ buf,sMac,dMac, corePeer, pktRecvPeer, ttl](uint64_t mac,sockaddr_storage addr){
                     if( mac != MAC_BROADCAST && !compareSockAddr(pktRecvPeer,addr)){
 
-                        if(debug) {
+                        if(Config::debug) {
                             DebugL << "BROADCAST:" << MacMap::uint64ToMacStr(sMac) << " -> " << MacMap::uint64ToMacStr(dMac) << " - " << MacMap::uint64ToMacStr(mac) << " "
                                    << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer)) << ":"
                                    << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&pktRecvPeer)) << " -> "
@@ -124,7 +123,7 @@ void VSwitch::pollInterface(uint8_t sendTtl,const std::shared_ptr<std::vector<ui
     bool got = false;
     auto peer = MacMap::getMacPeer(dMac,got);
 
-    if(debug) {
+    if(Config::debug) {
         DebugL << "TP:" << MacMap::uint64ToMacStr(sMac) << " -> " << MacMap::uint64ToMacStr(dMac);
     }
 
@@ -132,7 +131,7 @@ void VSwitch::pollInterface(uint8_t sendTtl,const std::shared_ptr<std::vector<ui
     // 远端有效则发送数据，无效则只执行广播
     auto port = toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&peer));
     if(port){
-        if(debug) {
+        if(Config::debug) {
             DebugL << "TX:" << MacMap::uint64ToMacStr(sMac) << " -> " << MacMap::uint64ToMacStr(dMac) << " -> " << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&peer));
         }
         // 发送数据到远端
@@ -142,7 +141,7 @@ void VSwitch::pollInterface(uint8_t sendTtl,const std::shared_ptr<std::vector<ui
         // 远端地址无效，但目标MAC地址是广播地址，转发广播
         MacMap::forEach([data, sMac,dMac, sendTtl](uint64_t mac,sockaddr_storage addr){
             if( mac != MAC_BROADCAST ){
-                if(debug) {
+                if(Config::debug) {
                     DebugL << "TX BROADCAST:" << MacMap::uint64ToMacStr(sMac) << " -> " << MacMap::uint64ToMacStr(dMac) << " - " << MacMap::uint64ToMacStr(mac) << " "
                            << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&addr)) << ":"
                            << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));

@@ -11,15 +11,29 @@
 
 #define INVALID_REMOTE "0.0.0.0"
 
-volatile bool debug = false;
+namespace Config{
+    volatile bool debug = false;
+
+    uint8_t sendTtl = 8;
+
+    sockaddr_storage corePeer;
+
+    uint64_t macLocal;
+
+    std::string interfaceName;
+
+    int mtu;
+};
+
+
 
 int main(int argc, char* argv[]) {
 
     CommandLineParser parser(argc,argv);
 
-    debug = atoi(parser.getOptionValue("debug").c_str());
+    Config::debug = atoi(parser.getOptionValue("debug").c_str());
 
-    if(!debug){
+    if(!Config::debug){
         // 守护进程
         startDaemon();
         // 日志级别
@@ -31,10 +45,10 @@ int main(int argc, char* argv[]) {
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
     // 构建虚拟接口
-    auto name = parser.getOptionValue("name");
-    name = name.empty()?"tvs0":name;
-    TapInterface::Instance().name(name);
-    InfoL<<"Interface name "<<name;
+    Config::interfaceName = parser.getOptionValue("name");
+    Config::interfaceName = Config::interfaceName.empty()?"tvs0":Config::interfaceName;
+    TapInterface::Instance().name(Config::interfaceName);
+    InfoL<<"Interface name "<<Config::interfaceName;
 
     // 获取本地MAC地址
     auto mac = parser.getOptionValue("mac");
@@ -44,24 +58,24 @@ int main(int argc, char* argv[]) {
     }
     TapInterface::Instance().hwaddr(mac);
 
-    auto macLocal = MacMap::macToUint64(TapInterface::Instance().hwaddr());
-    InfoL<<"Local mac "<<MacMap::uint64ToMacStr(macLocal);
+    Config::macLocal = MacMap::macToUint64(TapInterface::Instance().hwaddr());
+    InfoL<<"Local mac "<<MacMap::uint64ToMacStr(Config::macLocal);
 
     // mtu
     auto mtuStr = parser.getOptionValue("mtu");
-    int mtu = 1420;
+    Config::mtu = 1420;
     if(!mtuStr.empty()){
-        mtu = stoi(mtuStr);
+        Config::mtu = stoi(mtuStr);
     }
-    TapInterface::Instance().mtu(mtu);
+    TapInterface::Instance().mtu(Config::mtu);
     InfoL<<"MTU "<<TapInterface::Instance().mtu();
 
 
     // ttl
     auto ttlStr = parser.getOptionValue("ttl");
-    uint8_t sendTtl = 8;
+    Config::sendTtl = 8;
     if(!ttlStr.empty()){
-        sendTtl = stoi(ttlStr);
+        Config::sendTtl = stoi(ttlStr);
     }
     // 远端地址
     auto remoteAddr = parser.getOptionValue("remote_addr");
@@ -100,17 +114,20 @@ int main(int argc, char* argv[]) {
 
 
     // 增加默认广播地址到MAC表
-    auto corePeer = toolkit::SockUtil::make_sockaddr(remoteAddr.c_str(),remotePort);
-    MacMap::addMacPeer(MAC_BROADCAST, corePeer,sendTtl);
+    Config::corePeer = toolkit::SockUtil::make_sockaddr(remoteAddr.c_str(),remotePort);
+    MacMap::addMacPeer(MAC_BROADCAST, Config::corePeer,Config::sendTtl);
 
     // 监听传输
     Transport::Instance().start(localPort);
 
     // 启动交换
-    VSwitch::start(corePeer,macLocal,sendTtl);
+    VSwitch::start();
 
-    // ARP保持链路
-    LinkKeeper::start(sendTtl);
+    // 保持链路
+    LinkKeeper::start();
+
+    // P2P
+    VSCtrlHelper::Instance().EnableP2P();
 
     // 设置退出信号处理函数
     static semaphore sem;

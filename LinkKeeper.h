@@ -9,18 +9,19 @@
 #include "TapInterface.h"
 #include "Transport.h"
 #include <Poller/EventPoller.h>
+#include "Config.h"
 
 using namespace toolkit;
 
 class LinkKeeper {
 public:
-    static void start(uint8_t ttl){
+    static void start(){
         // 每5S向Mac表内的对端发送垃圾ARP广播（目标IP为0.0.0.0），用于维护链路
-        Transport::Instance().getPoller()->doDelayTask(5000,[ttl](){
-            MacMap::forEach([ttl](uint64_t mac,sockaddr_storage addr){
+        Transport::Instance().getPoller()->doDelayTask(5000,[](){
+            MacMap::forEach([](uint64_t mac,sockaddr_storage addr){
             auto port = toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
                 if(port) {
-                    sendKeepData(mac, addr, ttl);
+                    sendKeepData(mac, addr, Config::sendTtl);
                 }
             });
             return 5000;

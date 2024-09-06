@@ -10,7 +10,7 @@
 #include <sys/socket.h>
 class VSwitch {
 public:
-    static void start(const sockaddr_storage& corePeer,uint64_t macLocal,uint8_t sendTtl);
+    static void start();
     static void stop();
 protected:
     static void setupOnPeerInput(const sockaddr_storage& corePeer,uint64_t macLocal);
