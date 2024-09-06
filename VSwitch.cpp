@@ -105,7 +105,7 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
             }
         }
 
-        if( sMac != MAC_BROADCAST ){
+        if( sMac != MAC_BROADCAST && sMac != Config::macLocal ){
             MacMap::addMacPeer(sMac, pktRecvPeer,ttl);
         }
     });
