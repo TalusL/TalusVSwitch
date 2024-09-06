@@ -5,8 +5,11 @@
 #ifndef TALUSVSWITCH_TRANSPORT_H
 #define TALUSVSWITCH_TRANSPORT_H
 
-#include <Network/Socket.h>
+#include "Config.h"
+
+
 #include "VSCtrlHelper.h"
+#include <Network/Socket.h>
 
 class Transport{
 public:
@@ -45,6 +48,9 @@ public:
         auto poller = getPoller();
         toolkit::EventPollerPool::Instance().getPoller()->async([poller, buf, ttl, addr, addr_len, try_flush](){
             auto cd = compress(buf);
+            if(cd->size() > buf->size() && cd->size() > Config::mtu) {
+                WarnL<<"WTF! compressedData is bigger than data , overflow mtu "<<cd->size()<<" - "<<buf->size();
+            }
             cd->data()[0] = (char)(ttl^cd->data()[cd->size()-1]);
             cd->data()[1] = cd->data()[cd->size()-2];
             poller->async([=](){
