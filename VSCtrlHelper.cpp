@@ -45,8 +45,8 @@ void VSCtrlHelper::QueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_st
             resp->append("ReQueryPeers,");
         }
         std::string peerStr = StrPrinter<<MacMap::uint64ToMacStr(item.first)<<"-"
-                                         << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&peer))<< "-"
-                                         << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&peer))<<",";
+                                         << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&item.second.sock))<< "-"
+                                         << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&item.second.sock))<<",";
         //填充MAC-IP-端口，信息
         resp->append(peerStr);
         if(resp->size()>1000){
@@ -69,18 +69,19 @@ void VSCtrlHelper::ReQueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_
         auto addr = parts[1];
         auto port = atoi(parts[2].c_str());
         auto peer = toolkit::SockUtil::make_sockaddr(addr.c_str(),port);
-        // 尝试向远程返回地址表发送数据，打通P2P
-        std::shared_ptr<int> retry = std::make_shared<int>();
-        *retry = 10;
-        EventPollerPool::Instance().getPoller()->doDelayTask(1000,[=](){
-            LinkKeeper::sendKeepData(mac,peer,Config::sendTtl);
-            if(*retry){
-                (*retry)--;
-                return 1000;
-            }
-            return 0;
-        });
-
+        if(!compareSockAddr(Config::corePeer,peer)) {
+            // 尝试向远程返回地址表发送数据，打通P2P
+            std::shared_ptr<int> retry = std::make_shared<int>();
+            *retry = 10;
+            EventPollerPool::Instance().getPoller()->doDelayTask(1000, [=]() {
+                LinkKeeper::sendKeepData(mac, peer, Config::sendTtl);
+                if (*retry) {
+                    (*retry)--;
+                    return 1000;
+                }
+                return 0;
+            });
+        }
     });
 }
 void VSCtrlHelper::EnableP2P() {
