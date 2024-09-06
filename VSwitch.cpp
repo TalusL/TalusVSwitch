@@ -87,7 +87,7 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
                                    << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer)) << ":"
                                    << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&pktRecvPeer)) << " -> "
                                    << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&addr)) << ":"
-                                   << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
+                                   << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr))<< " " << (int)ttl;
                         }
 
                         // 转发前TTL减一
