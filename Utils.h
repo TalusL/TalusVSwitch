@@ -66,6 +66,9 @@ inline std::string getMacAddress() {
             std::string mac;
             std::getline(file, mac);
             file.close();
+            if(mac.empty()) {
+                continue;
+            }
             return mac;
         }
     }
