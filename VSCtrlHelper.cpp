@@ -72,7 +72,8 @@ void VSCtrlHelper::ReQueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_
         bool gotPeer = false;
         auto macMapPeer = MacMap::getMacPeer(mac,gotPeer);
         if(Config::macLocal!=mac&&!compareSockAddr(macMapPeer,peer)) {
-            InfoL<<"Got mac peer "<<item;
+            InfoL<<"Got mac peer "<<item<<" current "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&macMapPeer)) << ":"
+        << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&macMapPeer));
             // 尝试向远程返回地址表发送数据，打通P2P
             std::shared_ptr<int> retry = std::make_shared<int>();
             *retry = 10;
