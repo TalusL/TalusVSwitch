@@ -6,6 +6,7 @@
 #define TALUSVSWITCH_TRANSPORT_H
 
 #include <Network/Socket.h>
+#include "VSCtrlHelper.h"
 
 class Transport{
 public:
@@ -30,6 +31,14 @@ public:
             if(cb){
                 cb(dd,pktRecvPeer,addr_len,ttl);
             }
+            toolkit::EventPollerPool::Instance().getPoller()->async([buf,pktRecvPeer,addr_len,ttl](){
+                // 目标MAC是0,应用内部控制信息
+                uint64_t dMac = *(uint64_t*)buf->data();
+                dMac = dMac<<16;
+                if( dMac == 0 ){
+                    VSCtrlHelper::Instance().handleCmd(buf, pktRecvPeer, addr_len, ttl);
+                }
+            },false);
         });
     }
     void send(const toolkit::Buffer::Ptr& buf,const sockaddr_storage& addr, socklen_t addr_len, bool try_flush ,uint8_t ttl){

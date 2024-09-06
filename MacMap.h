@@ -22,7 +22,7 @@ class MacMap{
 public:
     class MacPeer{
     public:
-        sockaddr_storage sock;
+        sockaddr_storage sock{};
         uint8_t ttl{};
         toolkit::Ticker ticker;
     };

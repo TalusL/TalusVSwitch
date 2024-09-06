@@ -114,7 +114,6 @@ void VSwitch::pollInterface(uint8_t sendTtl,const std::shared_ptr<std::vector<ui
     if(size <= 0){
         return;
     }
-    // 压缩数据
     auto data = std::make_shared<toolkit::BufferLikeString>();
     data->assign(reinterpret_cast<const char *>(buf->data()),size);
     // 查询mac表并转发数据
