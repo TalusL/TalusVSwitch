@@ -72,7 +72,7 @@ void VSCtrlHelper::ReQueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_
         bool gotPeer = false;
         auto macMapPeer = MacMap::getMacPeer(mac,gotPeer);
         if(Config::macLocal!=mac&&!compareSockAddr(macMapPeer,peer)) {
-            InfoL<<"got mac peer "<< parts[0] <<toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&peer)) << ":"
+            InfoL<<"got mac peer "<< parts[0] <<" " <<toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&peer)) << ":"
             << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&peer)) <<" current "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&macMapPeer)) << ":"
             << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&macMapPeer));
             // 尝试向远程返回地址表发送数据，打通P2P
@@ -87,7 +87,7 @@ void VSCtrlHelper::ReQueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_
                 return 0;
             });
         }else {
-            WarnL<<"ignore mac peer "<< parts[0] << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&peer)) << ":"
+            WarnL<<"ignore mac peer "<< parts[0] <<" " << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&peer)) << ":"
             << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&peer)) <<" current "
             << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&macMapPeer)) << ":"
             << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&macMapPeer));
