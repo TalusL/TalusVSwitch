@@ -152,20 +152,65 @@ inline toolkit::Buffer::Ptr decompress(const toolkit::Buffer::Ptr & compressedDa
 }
 
 inline bool compareSockAddr(const sockaddr_storage& addr1, const sockaddr_storage& addr2) {
-    if (addr1.ss_family != addr2.ss_family) {
-        return false;
+    // 确定地址族
+    bool isAddr1V4Mapped = false;
+    bool isAddr2V4Mapped = false;
+
+    if (addr1.ss_family == AF_INET6) {
+        isAddr1V4Mapped = IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)&addr1)->sin6_addr);
+    }
+    if (addr2.ss_family == AF_INET6) {
+        isAddr2V4Mapped = IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)&addr2)->sin6_addr);
     }
 
-    if (addr1.ss_family == AF_INET) {
-        const auto* ipv4Addr1 = reinterpret_cast<const sockaddr_in*>(&addr1);
-        const auto* ipv4Addr2 = reinterpret_cast<const sockaddr_in*>(&addr2);
-        return (ipv4Addr1->sin_addr.s_addr == ipv4Addr2->sin_addr.s_addr && ipv4Addr1->sin_port == ipv4Addr2->sin_port);
-    } else if (addr1.ss_family == AF_INET6) {
-        const auto* ipv6Addr1 = reinterpret_cast<const sockaddr_in6*>(&addr1);
-        const auto* ipv6Addr2 = reinterpret_cast<const sockaddr_in6*>(&addr2);
-        return (memcmp(&ipv6Addr1->sin6_addr, &ipv6Addr2->sin6_addr, sizeof(in6_addr)) == 0 && ipv6Addr1->sin6_port == ipv6Addr2->sin6_port);
+    // 如果两个都是 IPv4
+    if (addr1.ss_family == AF_INET && addr2.ss_family == AF_INET) {
+        const auto* addr1_in = reinterpret_cast<const sockaddr_in*>(&addr1);
+        const auto* addr2_in = reinterpret_cast<const sockaddr_in*>(&addr2);
+        return (addr1_in->sin_addr.s_addr == addr2_in->sin_addr.s_addr) &&
+               (addr1_in->sin_port == addr2_in->sin_port);
     }
 
+    // 如果一个是 IPv4，一个是 V4 映射 IPv6
+    if (isAddr2V4Mapped && addr1.ss_family == AF_INET) {
+        const auto* addr1_in = reinterpret_cast<const sockaddr_in*>(&addr1);
+        const auto* addr2_in6 = reinterpret_cast<const sockaddr_in6*>(&addr2);
+        const auto* v4_addr2 = reinterpret_cast<const in_addr*>(&addr2_in6->sin6_addr.s6_addr[12]);
+        return (addr1_in->sin_addr.s_addr == v4_addr2->s_addr) &&
+               (addr1_in->sin_port == addr2_in6->sin6_port);
+    }
+
+    if (isAddr1V4Mapped && addr2.ss_family == AF_INET) {
+        const auto* addr2_in = reinterpret_cast<const sockaddr_in*>(&addr2);
+        const auto* addr1_in6 = reinterpret_cast<const sockaddr_in6*>(&addr1);
+        const auto* v4_addr1 = reinterpret_cast<const in_addr*>(&addr1_in6->sin6_addr.s6_addr[12]);
+        return (v4_addr1->s_addr == addr2_in->sin_addr.s_addr) &&
+               (addr1_in6->sin6_port == addr2_in->sin_port);
+    }
+
+    // IPv6 地址比较
+    if (addr1.ss_family == AF_INET6 && addr2.ss_family == AF_INET6) {
+        const auto* addr1_in6 = reinterpret_cast<const sockaddr_in6*>(&addr1);
+        const auto* addr2_in6 = reinterpret_cast<const sockaddr_in6*>(&addr2);
+
+        if (isAddr1V4Mapped && !isAddr2V4Mapped) {
+            const auto* v4_addr1 = reinterpret_cast<const in_addr*>(&addr1_in6->sin6_addr.s6_addr[12]);
+            return memcmp(v4_addr1, &addr2_in6->sin6_addr, sizeof(in_addr)) == 0 &&
+                   (addr1_in6->sin6_port == addr2_in6->sin6_port);
+        }
+
+        if (!isAddr1V4Mapped && isAddr2V4Mapped) {
+            const auto* v4_addr2 = reinterpret_cast<const in_addr*>(&addr2_in6->sin6_addr.s6_addr[12]);
+            return memcmp(&addr1_in6->sin6_addr, v4_addr2, sizeof(in_addr)) == 0 &&
+                   (addr1_in6->sin6_port == addr2_in6->sin6_port);
+        }
+
+        // 如果两个都是普通的 IPv6 地址，进行直接比较
+        return (memcmp(&addr1_in6->sin6_addr, &addr2_in6->sin6_addr, sizeof(addr1_in6->sin6_addr)) == 0) &&
+               (addr1_in6->sin6_port == addr2_in6->sin6_port);
+    }
+
+    // 不支持的地址族
     return false;
 }
 
