@@ -77,7 +77,7 @@ void VSCtrlHelper::ReQueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_
             << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&macMapPeer));
             // 尝试向远程返回地址表发送数据，打通P2P
             std::shared_ptr<int> retry = std::make_shared<int>();
-            *retry = 10;
+            *retry = 30;
             EventPollerPool::Instance().getPoller()->doDelayTask(1000, [=]() {
                 LinkKeeper::sendKeepData(mac, peer, Config::sendTtl);
                 if (*retry) {
