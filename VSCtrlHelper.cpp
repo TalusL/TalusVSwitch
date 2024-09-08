@@ -94,7 +94,7 @@ void VSCtrlHelper::ReQueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_
         }
     });
 }
-void VSCtrlHelper::EnableP2P() {
+void VSCtrlHelper::setupP2P() {
     EventPollerPool::Instance().getPoller()->doDelayTask(30*1000,[](){
         VSCtrlHelper::Instance().SendQueryPeers();
         return 30*1000;

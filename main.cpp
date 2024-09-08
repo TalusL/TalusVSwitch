@@ -70,6 +70,18 @@ int main(int argc, char* argv[]) {
     TapInterface::Instance().mtu(Config::mtu);
     InfoL<<"MTU "<<TapInterface::Instance().mtu();
 
+    auto autoUpStr= parser.getOptionValue("auto_up");
+    bool autoUp = true;
+    if(!autoUpStr.empty()){
+        autoUp = stoi(autoUpStr);
+    }
+
+    auto enableP2PStr= parser.getOptionValue("p2p");
+    bool enableP2p = true;
+    if(!enableP2PStr.empty()){
+        enableP2p = stoi(enableP2PStr);
+    }
+
 
     // ttl
     auto ttlStr = parser.getOptionValue("ttl");
@@ -110,7 +122,9 @@ int main(int argc, char* argv[]) {
         InfoL<<"Interface Addr:"<<addr<<"/"<<netMask;
     }
 
-    TapInterface::Instance().up();
+    if(autoUp) {
+        TapInterface::Instance().up();
+    }
 
 
     // 增加默认广播地址到MAC表
@@ -127,7 +141,9 @@ int main(int argc, char* argv[]) {
     LinkKeeper::start();
 
     // P2P
-    VSCtrlHelper::Instance().EnableP2P();
+    if(enableP2p) {
+        VSCtrlHelper::Instance().setupP2P();
+    }
 
     // 设置退出信号处理函数
     static semaphore sem;

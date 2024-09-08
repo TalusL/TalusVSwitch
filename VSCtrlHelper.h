@@ -23,7 +23,7 @@ public:
     // 收到查询远端地址表返回
     void ReQueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_storage& peer, int addr_len,uint8_t ttl);
     // 尝试启用P2P
-    void EnableP2P();
+    void setupP2P();
 };
 
 #endif//TALUSVSWITCH_P2PHELPER_H
