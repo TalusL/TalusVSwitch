@@ -147,7 +147,14 @@ void VSwitch::pollInterface(uint8_t sendTtl,const std::shared_ptr<std::vector<ui
         return ;
     }else if( dMac == MAC_BROADCAST ){
         // 远端地址无效，但目标MAC地址是广播地址，转发广播
-        MacMap::forEach([data, sMac,dMac, sendTtl](uint64_t mac,sockaddr_storage addr){
+        std::shared_ptr<std::list<sockaddr_storage>> sendPeers = std::make_shared<std::list<sockaddr_storage>>();
+        MacMap::forEach([data, sMac,dMac, sendTtl, sendPeers](uint64_t mac,sockaddr_storage addr){
+            auto iter = std::find_if(sendPeers->begin(), sendPeers->end(), [addr](const sockaddr_storage& addr2){
+                return compareSockAddr(addr, addr2);
+            });
+            if (iter!= sendPeers->end()) {
+                return;
+            }
             if( mac != MAC_BROADCAST ){
                 if(Config::debug) {
                     DebugL << "TX BROADCAST:" << MacMap::uint64ToMacStr(sMac) << " -> " << MacMap::uint64ToMacStr(dMac) << " - " << MacMap::uint64ToMacStr(mac) << " "
@@ -155,6 +162,7 @@ void VSwitch::pollInterface(uint8_t sendTtl,const std::shared_ptr<std::vector<ui
                            << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
                 }
                 Transport::Instance().send(data, addr, sizeof(sockaddr_storage),true,sendTtl);
+                sendPeers->push_back(addr);
             }
         });
     }
