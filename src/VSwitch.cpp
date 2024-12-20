@@ -1,14 +1,33 @@
-//
+﻿//
 // Created by liangzhuohua on 2024/8/28.
 //
 
 #include "VSwitch.h"
 #include "MacMap.h"
+#ifdef _WIN32
+#include "WinTapInterface.h"
+#else
 #include "TapInterface.h"
+#endif
 #include "Transport.h"
 #include "Utils.h"
 #include <memory>
 #include "Config.h"
+
+
+namespace Config{
+    volatile bool debug = false;
+
+    uint8_t sendTtl = 8;
+
+    sockaddr_storage corePeer;
+
+    uint64_t macLocal;
+
+    std::string interfaceName;
+
+    int mtu;
+};
 
 volatile bool VSwitch::m_running = false;
 std::shared_ptr<toolkit::ThreadPool> VSwitch::m_thread;

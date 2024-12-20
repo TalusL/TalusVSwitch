@@ -11,19 +11,7 @@
 
 #define INVALID_REMOTE "0.0.0.0"
 
-namespace Config{
-    volatile bool debug = false;
 
-    uint8_t sendTtl = 8;
-
-    sockaddr_storage corePeer;
-
-    uint64_t macLocal;
-
-    std::string interfaceName;
-
-    int mtu;
-};
 
 
 

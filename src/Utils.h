@@ -1,4 +1,4 @@
-//
+﻿//
 // Created by liangzhuohua on 2024/8/20.
 //
 
@@ -6,14 +6,21 @@
 #define TUNNEL_UTILS_H
 
 #include <csignal>
-#include <dirent.h>
 #include <fstream>
 #include <string>
-#include <sys/wait.h>
 #include <vector>
-#include <zlib.h>
 #include <Network/Buffer.h>
 #include <Network/sockutil.h>
+
+#include <zlib.h>
+
+#ifdef _WIN32
+#else
+#include <dirent.h>
+#include <sys/wait.h>
+#endif
+
+
 
 
 class CommandLineParser {
@@ -42,6 +49,7 @@ private:
 };
 
 inline std::string getMacAddress() {
+# ifdef __unix__
     DIR* dir;
     struct dirent* ent;
     std::vector<std::string> interfaceNames;
@@ -72,6 +80,7 @@ inline std::string getMacAddress() {
             return mac;
         }
     }
+#endif
 
     return "";
 }

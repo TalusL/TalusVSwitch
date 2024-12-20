@@ -1,4 +1,4 @@
-//
+﻿//
 // Created by liangzhuohua on 2024/8/27.
 //
 
@@ -6,7 +6,11 @@
 #define TALUSVSWITCH_LINKKEEPER_H
 
 #include "MacMap.h"
+#ifdef _WIN32
+#include "WinTapInterface.h"
+#else
 #include "TapInterface.h"
+#endif
 #include "Transport.h"
 #include <Poller/EventPoller.h>
 #include "Config.h"

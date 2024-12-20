@@ -8,7 +8,11 @@
 #include <functional>
 #include <iomanip>
 #include <sstream>
+#ifdef _WIN32
+#include <ws2def.h>
+#else
 #include <sys/socket.h>
+#endif
 #include <unordered_map>
 #include <Util/util.h>
 #include <Util/TimeTicker.h>

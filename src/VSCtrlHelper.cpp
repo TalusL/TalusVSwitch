@@ -1,10 +1,16 @@
-//
+﻿//
 // Created by liangzhuohua on 2024/9/6.
 //
 #include "VSCtrlHelper.h"
 #include "MacMap.h"
 #include "Transport.h"
+#ifdef _WIN32
+#include "WinTapInterface.h"
+#else
 #include "TapInterface.h"
+#endif
+#include <algorithm>
+
 #include "LinkKeeper.h"
 #include "Config.h"
 

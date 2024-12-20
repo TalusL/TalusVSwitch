@@ -1,4 +1,4 @@
-//
+﻿//
 // Created by liangzhuohua on 2024/8/28.
 //
 
@@ -7,7 +7,13 @@
 
 #include "Poller/EventPoller.h"
 #include <cstdint>
+#include <memory>
+#include <vector>
+#ifdef _WIN32
+#include <ws2def.h>
+#else
 #include <sys/socket.h>
+#endif
 class VSwitch {
 public:
     static void start();
