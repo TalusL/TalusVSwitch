@@ -7,6 +7,7 @@
 
 
 namespace Config{
+    extern std::string interfaceName;
     extern volatile bool debug;
     extern uint8_t sendTtl;
     extern sockaddr_storage corePeer;
