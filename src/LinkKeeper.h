@@ -25,7 +25,7 @@ public:
             MacMap::forEach([](uint64_t mac,sockaddr_storage addr){
             auto port = toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
                 if(port) {
-                    sendKeepData(mac, addr, Config::sendTtl);
+                    sendKeepData(mac, addr, 0);
                 }
             });
             return 5000;

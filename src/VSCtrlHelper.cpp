@@ -85,7 +85,7 @@ void VSCtrlHelper::ReQueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_
             std::shared_ptr<int> retry = std::make_shared<int>();
             *retry = 30;
             EventPollerPool::Instance().getPoller()->doDelayTask(1000, [=]() {
-                LinkKeeper::sendKeepData(mac, peer, Config::sendTtl);
+                LinkKeeper::sendKeepData(mac, peer, 0);
                 if (*retry) {
                     (*retry)--;
                     return 1000;
