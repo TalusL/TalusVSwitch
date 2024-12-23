@@ -58,12 +58,14 @@ void VSwitch::sendBroadcast(const toolkit::Buffer::Ptr& buf,const sockaddr_stora
     // 广播流量转发，向子节点转发
     std::shared_ptr<std::list<sockaddr_storage>> sendPeers = std::make_shared<std::list<sockaddr_storage>>();
     MacMap::forEach([ buf,sMac,dMac, pktRecvPeer, ttl,sendPeers](uint64_t mac,sockaddr_storage addr){
+        //去重
         auto iter = std::find_if(sendPeers->begin(), sendPeers->end(), [addr](const sockaddr_storage& addr2){
             return compareSockAddr(addr, addr2);
         });
         if (iter!= sendPeers->end()) {
             return;
         }
+        // 忽略数据包来源地址
         if (compareSockAddr(pktRecvPeer,addr)) {
             return;
         }
