@@ -112,8 +112,8 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
             }
             TapInterface::Instance().write(buf->data(),buf->size());
         }
-
-        if( sMac != MAC_BROADCAST && sMac != Config::macLocal ){
+        // 收到合适的MAC地址报文,更新MAC表
+        if( sMac != MAC_BROADCAST && sMac != Config::macLocal &&dMac != MAC_BROADCAST ){
             MacMap::addMacPeer(sMac, pktRecvPeer,ttl);
         }
         if (!ttl) {

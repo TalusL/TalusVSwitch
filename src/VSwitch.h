@@ -20,7 +20,8 @@ public:
     static void stop();
 protected:
     static void setupOnPeerInput(const sockaddr_storage& corePeer,uint64_t macLocal);
-    static void pollInterface(uint8_t sendTtl,const std::shared_ptr<std::vector<uint8_t>>& buf);
+    static void pollInterface(const std::shared_ptr<std::vector<uint8_t>>& buf);
+    static void sendBroadcast(const toolkit::Buffer::Ptr& buf,const sockaddr_storage& pktRecvPeer,uint8_t ttl);
     static volatile bool m_running;
     static std::shared_ptr<toolkit::ThreadPool> m_thread;
 
