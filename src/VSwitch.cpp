@@ -76,13 +76,18 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
             TapInterface::Instance().write(buf->data(),buf->size());
         }
 
-
+        if( sMac != MAC_BROADCAST && sMac != Config::macLocal ){
+            MacMap::addMacPeer(sMac, pktRecvPeer,ttl);
+        }
+        if (!ttl) {
+            return;
+        }
         // TTL为0不转发
-        if( dMac != macLocal && ttl ){
+        if( dMac != macLocal){
             // 从核心节点转发的来的数据(即本节点是客户端)不进行转发
             // 就是发给本节点的数据，不转发
             if( dMac != MAC_BROADCAST ){
-                // 常规流量转发，只有核心节点需要
+                // 常规流量转发
                 bool got = false;
                 auto forwardPeer = MacMap::getMacPeer(dMac,got);
                 if(got){
@@ -97,12 +102,9 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
                     Transport::Instance().send(buf,forwardPeer, sizeof(sockaddr_storage),true,ttl-1);
                 }
             }else{
-                // 广播流量转发，只有核心节点需要,向子节点转发
+                // 广播流量转发，向子节点转发
                 std::shared_ptr<std::list<sockaddr_storage>> sendPeers = std::make_shared<std::list<sockaddr_storage>>();
                 MacMap::forEach([ buf,sMac,dMac, corePeer, pktRecvPeer, ttl,sendPeers](uint64_t mac,sockaddr_storage addr){
-                    if (!ttl) {
-                        return;
-                    }
                     auto iter = std::find_if(sendPeers->begin(), sendPeers->end(), [addr](const sockaddr_storage& addr2){
                         return compareSockAddr(addr, addr2);
                     });
@@ -125,10 +127,6 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
                     }
                 });
             }
-        }
-
-        if( sMac != MAC_BROADCAST && sMac != Config::macLocal ){
-            MacMap::addMacPeer(sMac, pktRecvPeer,ttl);
         }
     });
 }
