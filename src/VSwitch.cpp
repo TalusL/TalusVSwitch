@@ -100,6 +100,9 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
                 // 广播流量转发，只有核心节点需要,向子节点转发
                 std::shared_ptr<std::list<sockaddr_storage>> sendPeers = std::make_shared<std::list<sockaddr_storage>>();
                 MacMap::forEach([ buf,sMac,dMac, corePeer, pktRecvPeer, ttl,sendPeers](uint64_t mac,sockaddr_storage addr){
+                    if (!ttl) {
+                        return;
+                    }
                     auto iter = std::find_if(sendPeers->begin(), sendPeers->end(), [addr](const sockaddr_storage& addr2){
                         return compareSockAddr(addr, addr2);
                     });
