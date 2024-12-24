@@ -100,7 +100,7 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
             DebugL<<"P:"<<MacMap::uint64ToMacStr(sMac)<<" -> "<<MacMap::uint64ToMacStr(dMac)
                    <<" - "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer))<<":"
                    << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&pktRecvPeer))<<" "
-                   << (int)ttl;
+                   << (int)ttl<<" size:"<<buf->size();
         }
 
 
@@ -118,10 +118,14 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
         if( sMac != MAC_BROADCAST && sMac != Config::macLocal &&dMac != MAC_BROADCAST ){
             MacMap::addMacPeer(sMac, pktRecvPeer,ttl);
         }
+        // TTL为0不转发
         if (!ttl) {
             return;
         }
-        // TTL为0不转发
+        // 只有二层，不转发
+        if (buf->size() <= 12) {
+            return;
+        }
         if( dMac != macLocal){
             // 从核心节点转发的来的数据(即本节点是客户端)不进行转发
             // 就是发给本节点的数据，不转发
