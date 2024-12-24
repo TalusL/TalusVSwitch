@@ -72,6 +72,9 @@ void VSCtrlHelper::ReQueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_
             return;
         }
         auto mac = MacMap::macToUint64(parts[0]);
+        if (mac == MAC_BROADCAST) {
+            return;
+        }
         auto addr = parts[1];
         auto port = atoi(parts[2].c_str());
         auto peer = toolkit::SockUtil::make_sockaddr(addr.c_str(),port);
