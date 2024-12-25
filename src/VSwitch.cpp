@@ -24,6 +24,8 @@ namespace Config{
 
     uint64_t macLocal;
 
+    uint64_t macCore;
+
     std::string interfaceName;
 
     std::string localIp;

@@ -12,6 +12,7 @@ namespace Config{
     extern uint8_t sendTtl;
     extern sockaddr_storage corePeer;
     extern uint64_t macLocal;
+    extern uint64_t macCore;
     extern  int mtu;
     extern std::string localIp;
     extern int mask;
