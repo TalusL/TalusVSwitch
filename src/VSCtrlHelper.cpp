@@ -14,14 +14,18 @@
 #include "LinkKeeper.h"
 #include "Config.h"
 
+// 命令字列表
+#define TVS_CMD_QUERY_PEERS TVS_CMD_PREFIX"QueryPeers"
+#define TVS_CMD_QUERY_PEERS_RESPONSE TVS_CMD_PREFIX"ReQueryPeers"
+
 
 void VSCtrlHelper::handleCmd(const toolkit::Buffer::Ptr &buf, const sockaddr_storage& peer, int addr_len,uint8_t ttl){
     auto parts = toolkit::split(buf->data()+12,",");
     using request_handler = void (VSCtrlHelper::*)(const toolkit::Buffer::Ptr &buf, const sockaddr_storage& peer, int addr_len,uint8_t ttl);
     static std::unordered_map<std::string, request_handler> s_cmd_functions;
     static toolkit::onceToken token([]() {
-        s_cmd_functions.emplace("QueryPeers", &VSCtrlHelper::QueryPeers);
-        s_cmd_functions.emplace("ReQueryPeers", &VSCtrlHelper::ReQueryPeers);
+        s_cmd_functions.emplace(TVS_CMD_QUERY_PEERS, &VSCtrlHelper::QueryPeers);
+        s_cmd_functions.emplace(TVS_CMD_QUERY_PEERS_RESPONSE, &VSCtrlHelper::ReQueryPeers);
     });
     auto it = s_cmd_functions.find(parts.front());
     if (it == s_cmd_functions.end()) {
@@ -48,7 +52,7 @@ void VSCtrlHelper::QueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_st
             pMac = reinterpret_cast<char*>(&macLocal)+2;
             resp->append(pMac, 6);
             // 填充返回命令字
-            resp->append("ReQueryPeers,");
+            resp->append(TVS_CMD_QUERY_PEERS_RESPONSE",");
         }
         std::string peerStr = StrPrinter<<MacMap::uint64ToMacStr(item.first)<<"-"
                                          << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&item.second.sock))<< "-"
@@ -119,8 +123,8 @@ void VSCtrlHelper::SendQueryPeers() {
     auto macLocal = MacMap::macToUint64(TapInterface::Instance().hwaddr());
     pMac = reinterpret_cast<char*>(&macLocal)+2;
     resp->append(pMac, 6);
-    // 填充返回命令字
-    resp->append("QueryPeers,");
+    // 填充查询命令字
+    resp->append(TVS_CMD_QUERY_PEERS",");
     // 发送查询指令
     InfoL<<"send QueryPeers to "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&Config::corePeer)) << ":"
         << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&Config::corePeer));

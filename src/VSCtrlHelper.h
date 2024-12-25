@@ -8,6 +8,8 @@
 #include <Network/Buffer.h>
 #include <Network/Socket.h>
 
+#define TVS_CMD_PREFIX "TVS_"
+
 class VSCtrlHelper{
 public:
     static VSCtrlHelper& Instance(){

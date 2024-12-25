@@ -21,7 +21,8 @@ public:
         _sock = toolkit::Socket::createSocket();
         _sock->bindUdpSock(port,local_ip,enable_reuse);
     }
-    void setOnRead(const std::function<void(const toolkit::Buffer::Ptr &buf,const sockaddr_storage& pktRecvPeer, int addr_len,uint8_t ttl)>& cb){
+    void setOnRead(const std::function<void(const toolkit::Buffer::Ptr &buf,
+        const sockaddr_storage& pktRecvPeer, int addr_len,uint8_t ttl,bool isTvsCmd)>& cb){
         auto poller = getPoller();
         _sock->setOnRead([cb,poller](toolkit::Buffer::Ptr &buf, struct sockaddr *addr, int addr_len){
             sockaddr_storage pktRecvPeer{};
@@ -33,15 +34,17 @@ public:
             auto dd = decompress(buf);
             uint64_t dMac = *(uint64_t*)dd->data();
             dMac = dMac<<16;
+            auto isTvsCmd = strncmp(dd->data() + 12,TVS_CMD_PREFIX,strlen(TVS_CMD_PREFIX)) == 0 ;
             if(cb&&dMac){
-                cb(dd,pktRecvPeer,addr_len,ttl);
+                cb(dd,pktRecvPeer,addr_len,ttl,isTvsCmd);
             }
-            toolkit::EventPollerPool::Instance().getPoller()->async([dd,pktRecvPeer,addr_len,ttl,dMac](){
-                // 目标MAC是0,应用内部控制信息
-                if( dMac == 0 ){
+            if (isTvsCmd) {
+                // 执行命令
+                toolkit::EventPollerPool::Instance().getPoller()->async([dd,pktRecvPeer,addr_len,ttl,dMac](){
+                    // 格式符合TVS命令，回调
                     VSCtrlHelper::Instance().handleCmd(dd, pktRecvPeer, addr_len, ttl);
-                }
-            },false);
+                },false);
+            }
         });
     }
     void send(const toolkit::Buffer::Ptr& buf,const sockaddr_storage& addr, socklen_t addr_len, bool try_flush ,uint8_t ttl){

@@ -94,8 +94,10 @@ void VSwitch::sendBroadcast(const toolkit::Buffer::Ptr& buf,const sockaddr_stora
 }
 
 void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLocal) {
-    Transport::Instance().setOnRead([macLocal, corePeer](const toolkit::Buffer::Ptr &buf, const sockaddr_storage& pktRecvPeer, int addr_len,uint8_t ttl){
+    Transport::Instance().setOnRead([macLocal, corePeer](const toolkit::Buffer::Ptr &buf,
+        const sockaddr_storage& pktRecvPeer, int addr_len,uint8_t ttl,bool isTvsCmd){
 
+        // 获取来源MAC
         uint64_t sMac = *(uint64_t*)(buf->data()+6);
         sMac = sMac<<16;
         // 获取目标MAC
@@ -109,20 +111,26 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
                    << (int)ttl<<" size:"<<buf->size();
         }
 
+        // TVS命令流量不写入网卡，只参与在各节点内部转发
+        if (!isTvsCmd) {
+            // 符合要求的流量送入虚拟网卡
+            if( ( dMac == macLocal || dMac == MAC_BROADCAST ) && sMac != macLocal && buf->size() > 12){
 
-        // 符合要求的流量送入虚拟网卡
-        if( ( dMac == macLocal || dMac == MAC_BROADCAST ) && sMac != macLocal && buf->size() > 12){
-
-            if(Config::debug) {
-                DebugL << "RX:" << MacMap::uint64ToMacStr(sMac) << " - " << MacMap::uint64ToMacStr(dMac) << " "
-                       << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer)) << ":"
-                       << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&pktRecvPeer));
+                if(Config::debug) {
+                    DebugL << "RX:" << MacMap::uint64ToMacStr(sMac) << " - " << MacMap::uint64ToMacStr(dMac) << " "
+                           << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer)) << ":"
+                           << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&pktRecvPeer));
+                }
+                TapInterface::Instance().write(buf->data(),buf->size());
             }
-            TapInterface::Instance().write(buf->data(),buf->size());
+            // 收到合适的MAC地址报文,更新MAC表
+            if( sMac != MAC_BROADCAST && sMac != Config::macLocal){
+                MacMap::addMacPeer(sMac, pktRecvPeer,ttl);
+            }
         }
-        // 收到合适的MAC地址报文,更新MAC表
-        if( sMac != MAC_BROADCAST && sMac != Config::macLocal){
-            MacMap::addMacPeer(sMac, pktRecvPeer,ttl);
+        // 发给本节点的流量，不转发
+        if( dMac == macLocal) {
+            return;
         }
         // TTL为0不转发
         if (!ttl) {
@@ -132,27 +140,25 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
         if (buf->size() <= 12) {
             return;
         }
-        if( dMac != macLocal){
-            // 从核心节点转发的来的数据(即本节点是客户端)不进行转发
-            // 就是发给本节点的数据，不转发
-            if( dMac != MAC_BROADCAST ){
-                // 常规流量转发
-                bool got = false;
-                auto forwardPeer = MacMap::getMacPeer(dMac,got);
-                if(got){
-                    if(Config::debug) {
-                        DebugL << "FORWARD:" << MacMap::uint64ToMacStr(sMac) << " -> " << MacMap::uint64ToMacStr(dMac) << " - "
-                               << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer)) << ":"
-                               << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&pktRecvPeer)) << " -> "
-                               << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&forwardPeer)) << ":"
-                               << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&forwardPeer));
-                    }
-                    // 转发前TTL减一
-                    Transport::Instance().send(buf,forwardPeer, sizeof(sockaddr_storage),true,ttl-1);
+
+        if( dMac != MAC_BROADCAST ){
+            // 常规流量转发
+            bool got = false;
+            auto forwardPeer = MacMap::getMacPeer(dMac,got);
+            if(got){
+                if(Config::debug) {
+                    DebugL << "FORWARD:" << MacMap::uint64ToMacStr(sMac) << " -> " << MacMap::uint64ToMacStr(dMac) << " - "
+                           << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&pktRecvPeer)) << ":"
+                           << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&pktRecvPeer)) << " -> "
+                           << toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&forwardPeer)) << ":"
+                           << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&forwardPeer));
                 }
-            }else{
-                sendBroadcast(buf,pktRecvPeer,ttl);
+                // 转发前TTL减一
+                Transport::Instance().send(buf,forwardPeer, sizeof(sockaddr_storage),true,ttl-1);
             }
+        }else{
+            // 广播流量转发
+            sendBroadcast(buf,pktRecvPeer,ttl);
         }
     });
 }
