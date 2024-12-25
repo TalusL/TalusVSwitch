@@ -91,6 +91,10 @@ public:
         got = false;
         return macMap()[MAC_BROADCAST].sock;
     }
+    static bool existsMacPeer(uint64_t mac) {
+        std::lock_guard<std::mutex> lck(macMutex());
+        return macMap().find(mac) != macMap().end();
+    }
     static sockaddr_storage getMacPeer(const std::string& mac,bool& got){
         return getMacPeer(macToUint64(mac),got);
     }
