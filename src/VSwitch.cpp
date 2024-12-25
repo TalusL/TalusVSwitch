@@ -117,9 +117,6 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
         // 收到合适的MAC地址报文,更新MAC表
         if( sMac != MAC_BROADCAST && sMac != Config::macLocal){
             // 目标是MAC广播，且源MAC已经存在，不更新。MacMap不存在时允许ARP
-            if (dMac == MAC_BROADCAST&&MacMap::existsMacPeer(sMac)) {
-                return;
-            }
             MacMap::addMacPeer(sMac, pktRecvPeer,ttl);
         }
         // TTL为0不转发
