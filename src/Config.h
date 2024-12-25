@@ -13,6 +13,8 @@ namespace Config{
     extern sockaddr_storage corePeer;
     extern uint64_t macLocal;
     extern  int mtu;
+    extern std::string localIp;
+    extern int mask;
 };
 
 

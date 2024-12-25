@@ -26,6 +26,10 @@ namespace Config{
 
     std::string interfaceName;
 
+    std::string localIp;
+
+    int mask = 24;
+
     int mtu;
 };
 

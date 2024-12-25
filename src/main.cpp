@@ -110,6 +110,9 @@ int main(int argc, char* argv[]) {
         InfoL<<"Interface Addr:"<<addr<<"/"<<netMask;
     }
 
+    Config::localIp = addr;
+    Config::mask = netMask;
+
     if(autoUp) {
         TapInterface::Instance().up();
     }
