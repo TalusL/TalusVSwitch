@@ -163,6 +163,7 @@ void VSCtrlHelper::OnQueryPeerInfoResponse(const toolkit::Buffer::Ptr &buf, cons
 void VSCtrlHelper::Start() {
     // P2P 远端轮询
     if(Config::enableP2p) {
+        VSCtrlHelper::Instance().SendQueryPeers();
         EventPollerPool::Instance().getPoller()->doDelayTask(30*1000,[](){
             VSCtrlHelper::Instance().SendQueryPeers();
             return 30*1000;
