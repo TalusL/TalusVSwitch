@@ -113,17 +113,21 @@ void VSCtrlHelper::OnQueryPeersResponse(const toolkit::Buffer::Ptr &buf, const s
 }
 
 void VSCtrlHelper::SendQueryPeerInfo() {
-    std::shared_ptr<toolkit::BufferLikeString> resp = std::make_shared<toolkit::BufferLikeString>();
+    std::shared_ptr<toolkit::BufferLikeString> req = std::make_shared<toolkit::BufferLikeString>();
     // 填充目标MAC
     uint64_t mac = 0;
     char *pMac = reinterpret_cast<char*>(&mac)+2;
-    resp->append(pMac, 6);
+    req->append(pMac, 6);
     // 填充来源MAC
     auto macLocal = MacMap::macToUint64(TapInterface::Instance().hwaddr());
     pMac = reinterpret_cast<char*>(&macLocal)+2;
-    resp->append(pMac, 6);
+    req->append(pMac, 6);
     // 填充查询命令字
-    resp->append(TVS_CMD_QUERY_PEER_INFO",");
+    req->append(TVS_CMD_QUERY_PEER_INFO",");
+    // 发送查询指令
+    InfoL<<"SendQueryPeerInfo to "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&Config::corePeer)) << ":"
+        << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&Config::corePeer));
+    Transport::Instance().send(req,Config::corePeer, sizeof(sockaddr_storage), true,Config::sendTtl);
 }
 
 void VSCtrlHelper::OnQueryPeerInfo(const toolkit::Buffer::Ptr &buf, const sockaddr_storage &peer, int addr_len,
@@ -173,19 +177,19 @@ void VSCtrlHelper::Start() {
 }
 
 void VSCtrlHelper::SendQueryPeers() {
-    std::shared_ptr<toolkit::BufferLikeString> resp = std::make_shared<toolkit::BufferLikeString>();
+    std::shared_ptr<toolkit::BufferLikeString> req = std::make_shared<toolkit::BufferLikeString>();
     // 填充目标MAC
     uint64_t mac = 0;
     char *pMac = reinterpret_cast<char*>(&mac)+2;
-    resp->append(pMac, 6);
+    req->append(pMac, 6);
     // 填充来源MAC
     auto macLocal = MacMap::macToUint64(TapInterface::Instance().hwaddr());
     pMac = reinterpret_cast<char*>(&macLocal)+2;
-    resp->append(pMac, 6);
+    req->append(pMac, 6);
     // 填充查询命令字
-    resp->append(TVS_CMD_QUERY_PEERS",");
+    req->append(TVS_CMD_QUERY_PEERS",");
     // 发送查询指令
     InfoL<<"send QueryPeers to "<< toolkit::SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&Config::corePeer)) << ":"
         << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&Config::corePeer));
-    Transport::Instance().send(resp,Config::corePeer, sizeof(sockaddr_storage), true,Config::sendTtl);
+    Transport::Instance().send(req,Config::corePeer, sizeof(sockaddr_storage), true,Config::sendTtl);
 }
