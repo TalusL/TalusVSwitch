@@ -24,14 +24,14 @@ public:
     void OnQueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_storage& peer, int addr_len,uint8_t ttl);
     // 收到查询远端地址表返回
     void OnQueryPeersResponse(const toolkit::Buffer::Ptr &buf, const sockaddr_storage& peer, int addr_len,uint8_t ttl);
+    // 查询远端信息
+    void SendQueryPeerInfo();
     // 收到查询远端信息请求
     void OnQueryPeerInfo(const toolkit::Buffer::Ptr &buf, const sockaddr_storage& peer, int addr_len,uint8_t ttl);
     // 收到查询远端信息请求返回
     void OnQueryPeerInfoResponse(const toolkit::Buffer::Ptr &buf, const sockaddr_storage& peer, int addr_len,uint8_t ttl);
     // 启动
     void Start();
-    // 尝试启用P2P
-    void setupP2P();
 };
 
 #endif//TALUSVSWITCH_P2PHELPER_H

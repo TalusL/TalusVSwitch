@@ -112,8 +112,22 @@ void VSCtrlHelper::OnQueryPeersResponse(const toolkit::Buffer::Ptr &buf, const s
     });
 }
 
+void VSCtrlHelper::SendQueryPeerInfo() {
+    std::shared_ptr<toolkit::BufferLikeString> resp = std::make_shared<toolkit::BufferLikeString>();
+    // 填充目标MAC
+    uint64_t mac = 0;
+    char *pMac = reinterpret_cast<char*>(&mac)+2;
+    resp->append(pMac, 6);
+    // 填充来源MAC
+    auto macLocal = MacMap::macToUint64(TapInterface::Instance().hwaddr());
+    pMac = reinterpret_cast<char*>(&macLocal)+2;
+    resp->append(pMac, 6);
+    // 填充查询命令字
+    resp->append(TVS_CMD_QUERY_PEER_INFO",");
+}
+
 void VSCtrlHelper::OnQueryPeerInfo(const toolkit::Buffer::Ptr &buf, const sockaddr_storage &peer, int addr_len,
-    uint8_t ttl) {
+                                   uint8_t ttl) {
     std::shared_ptr<toolkit::BufferLikeString> resp = std::make_shared<toolkit::BufferLikeString>();
     // 填充目标MAC
     uint64_t mac = 0;
@@ -143,18 +157,21 @@ void VSCtrlHelper::OnQueryPeerInfoResponse(const toolkit::Buffer::Ptr &buf, cons
 }
 
 void VSCtrlHelper::Start() {
-    // P2P
+    // P2P 远端轮询
     if(Config::enableP2p) {
-        VSCtrlHelper::Instance().setupP2P();
+        EventPollerPool::Instance().getPoller()->doDelayTask(30*1000,[](){
+            VSCtrlHelper::Instance().SendQueryPeers();
+            return 30*1000;
+        });
     }
-}
-
-void VSCtrlHelper::setupP2P() {
+    // 定期刷新远程信息
+    VSCtrlHelper::Instance().SendQueryPeerInfo();
     EventPollerPool::Instance().getPoller()->doDelayTask(30*1000,[](){
-        VSCtrlHelper::Instance().SendQueryPeers();
+        VSCtrlHelper::Instance().SendQueryPeerInfo();
         return 30*1000;
     });
 }
+
 void VSCtrlHelper::SendQueryPeers() {
     std::shared_ptr<toolkit::BufferLikeString> resp = std::make_shared<toolkit::BufferLikeString>();
     // 填充目标MAC
