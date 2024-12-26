@@ -94,7 +94,7 @@ void VSCtrlHelper::OnQueryPeersResponse(const toolkit::Buffer::Ptr &buf, const s
             << toolkit::SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&macMapPeer));
             // 尝试向远程返回地址表发送数据，打通P2P
             std::shared_ptr<int> retry = std::make_shared<int>();
-            *retry = 30;
+            *retry = 10;
             EventPollerPool::Instance().getPoller()->doDelayTask(1000, [=]() {
                 LinkKeeper::sendKeepData(mac, peer, 0);
                 if (*retry) {
@@ -164,9 +164,9 @@ void VSCtrlHelper::Start() {
     // P2P 远端轮询
     if(Config::enableP2p) {
         VSCtrlHelper::Instance().SendQueryPeers();
-        EventPollerPool::Instance().getPoller()->doDelayTask(30*1000,[](){
+        EventPollerPool::Instance().getPoller()->doDelayTask(60*1000,[](){
             VSCtrlHelper::Instance().SendQueryPeers();
-            return 30*1000;
+            return 60*1000;
         });
     }
     // 定期刷新远程信息
