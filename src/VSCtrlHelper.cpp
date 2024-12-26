@@ -144,7 +144,7 @@ void VSCtrlHelper::OnQueryPeerInfo(const toolkit::Buffer::Ptr &buf, const sockad
     // 填充返回命令字
     resp->append(TVS_CMD_QUERY_PEERS_RESPONSE",");
     // 填充本机信息
-    resp->append(TapInterface::Instance().ip());
+    resp->append(Config::localIp);
     resp->append(",");
     resp->append(TapInterface::Instance().hwaddr());
     // 返回信息
