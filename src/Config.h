@@ -16,6 +16,7 @@ namespace Config{
     extern  int mtu;
     extern std::string localIp;
     extern int mask;
+    extern bool enableP2p;
 };
 
 

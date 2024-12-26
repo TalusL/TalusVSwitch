@@ -33,6 +33,8 @@ namespace Config{
     int mask = 24;
 
     int mtu;
+
+    bool enableP2p = true;
 };
 
 volatile bool VSwitch::m_running = false;

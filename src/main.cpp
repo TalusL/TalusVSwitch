@@ -65,9 +65,8 @@ int main(int argc, char* argv[]) {
     }
 
     auto enableP2PStr= parser.getOptionValue("p2p");
-    bool enableP2p = true;
     if(!enableP2PStr.empty()){
-        enableP2p = stoi(enableP2PStr);
+        Config::enableP2p = stoi(enableP2PStr);
     }
 
 
@@ -131,10 +130,7 @@ int main(int argc, char* argv[]) {
     // 保持链路
     LinkKeeper::start();
 
-    // P2P
-    if(enableP2p) {
-        VSCtrlHelper::Instance().setupP2P();
-    }
+    VSCtrlHelper::Instance().Start();
 
     // 设置退出信号处理函数
     static semaphore sem;

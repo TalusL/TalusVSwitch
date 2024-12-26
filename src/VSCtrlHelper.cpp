@@ -17,6 +17,8 @@
 // 命令字列表
 #define TVS_CMD_QUERY_PEERS TVS_CMD_PREFIX"QueryPeers"
 #define TVS_CMD_QUERY_PEERS_RESPONSE TVS_CMD_PREFIX"ReQueryPeers"
+#define TVS_CMD_QUERY_PEER_INFO TVS_CMD_PREFIX"QueryPeerInfo"
+#define TVS_CMD_QUERY_PEER_INFO_RESPONSE TVS_CMD_PREFIX"ReQueryPeerInfo"
 
 
 void VSCtrlHelper::handleCmd(const toolkit::Buffer::Ptr &buf, const sockaddr_storage& peer, int addr_len,uint8_t ttl){
@@ -24,8 +26,10 @@ void VSCtrlHelper::handleCmd(const toolkit::Buffer::Ptr &buf, const sockaddr_sto
     using request_handler = void (VSCtrlHelper::*)(const toolkit::Buffer::Ptr &buf, const sockaddr_storage& peer, int addr_len,uint8_t ttl);
     static std::unordered_map<std::string, request_handler> s_cmd_functions;
     static toolkit::onceToken token([]() {
-        s_cmd_functions.emplace(TVS_CMD_QUERY_PEERS, &VSCtrlHelper::QueryPeers);
-        s_cmd_functions.emplace(TVS_CMD_QUERY_PEERS_RESPONSE, &VSCtrlHelper::ReQueryPeers);
+        s_cmd_functions.emplace(TVS_CMD_QUERY_PEERS, &VSCtrlHelper::OnQueryPeers);
+        s_cmd_functions.emplace(TVS_CMD_QUERY_PEERS_RESPONSE, &VSCtrlHelper::OnQueryPeersResponse);
+        s_cmd_functions.emplace(TVS_CMD_QUERY_PEER_INFO, &VSCtrlHelper::OnQueryPeerInfo);
+        s_cmd_functions.emplace(TVS_CMD_QUERY_PEER_INFO_RESPONSE, &VSCtrlHelper::OnQueryPeerInfoResponse);
     });
     auto it = s_cmd_functions.find(parts.front());
     if (it == s_cmd_functions.end()) {
@@ -34,7 +38,7 @@ void VSCtrlHelper::handleCmd(const toolkit::Buffer::Ptr &buf, const sockaddr_sto
     (this->*(it->second))(buf,peer,addr_len,ttl);
 }
 // 收到查询远端地址表请求
-void VSCtrlHelper::QueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_storage& peer, int addr_len,uint8_t ttl){
+void VSCtrlHelper::OnQueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_storage& peer, int addr_len,uint8_t ttl){
     // 拷贝表，防止加锁影响正常交换
     auto macMap = MacMap::macMap();
     std::shared_ptr<toolkit::BufferLikeString> resp = std::make_shared<toolkit::BufferLikeString>();
@@ -68,7 +72,7 @@ void VSCtrlHelper::QueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_st
     Transport::Instance().send(resp,peer,addr_len, true,ttl);
 }
 // 收到查询远端地址表返回
-void VSCtrlHelper::ReQueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_storage &peer, int addr_len, uint8_t ttl) {
+void VSCtrlHelper::OnQueryPeersResponse(const toolkit::Buffer::Ptr &buf, const sockaddr_storage &peer, int addr_len, uint8_t ttl) {
     auto parts = toolkit::split(buf->toString(),",");
     std::for_each(parts.begin()+1, parts.end(), [&](const auto &item) {
         auto parts = toolkit::split(item,"-");
@@ -107,6 +111,44 @@ void VSCtrlHelper::ReQueryPeers(const toolkit::Buffer::Ptr &buf, const sockaddr_
         }
     });
 }
+
+void VSCtrlHelper::OnQueryPeerInfo(const toolkit::Buffer::Ptr &buf, const sockaddr_storage &peer, int addr_len,
+    uint8_t ttl) {
+    std::shared_ptr<toolkit::BufferLikeString> resp = std::make_shared<toolkit::BufferLikeString>();
+    // 填充目标MAC
+    uint64_t mac = 0;
+    char *pMac = reinterpret_cast<char*>(&mac)+2;
+    resp->append(pMac, 6);
+    // 填充来源MAC
+    auto macLocal = MacMap::macToUint64(TapInterface::Instance().hwaddr());
+    pMac = reinterpret_cast<char*>(&macLocal)+2;
+    resp->append(pMac, 6);
+    // 填充返回命令字
+    resp->append(TVS_CMD_QUERY_PEERS_RESPONSE",");
+    // 填充本机信息
+    resp->append(TapInterface::Instance().ip());
+    resp->append(",");
+    resp->append(TapInterface::Instance().hwaddr());
+    // 返回信息
+    Transport::Instance().send(resp,peer,addr_len, true,Config::sendTtl);
+}
+
+void VSCtrlHelper::OnQueryPeerInfoResponse(const toolkit::Buffer::Ptr &buf, const sockaddr_storage &peer, int addr_len,
+    uint8_t ttl) {
+    auto parts = toolkit::split(buf->toString(),",");
+    auto corePeerIp = parts[1];
+    auto corePeerMac = parts[2];
+    DebugL<<"CorePeer "<<corePeerIp<<" "<<corePeerMac;
+    Config::macCore = MacMap::macToUint64(corePeerMac);
+}
+
+void VSCtrlHelper::Start() {
+    // P2P
+    if(Config::enableP2p) {
+        VSCtrlHelper::Instance().setupP2P();
+    }
+}
+
 void VSCtrlHelper::setupP2P() {
     EventPollerPool::Instance().getPoller()->doDelayTask(30*1000,[](){
         VSCtrlHelper::Instance().SendQueryPeers();
