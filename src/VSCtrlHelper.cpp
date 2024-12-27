@@ -156,7 +156,7 @@ void VSCtrlHelper::OnQueryPeerInfoResponse(const toolkit::Buffer::Ptr &buf, cons
     auto parts = toolkit::split(buf->toString(),",");
     auto corePeerIp = parts[1];
     auto corePeerMac = parts[2];
-    DebugL<<"CorePeer "<<corePeerIp<<" "<<corePeerMac;
+    InfoL<<"CorePeer "<<corePeerIp<<" "<<corePeerMac;
     Config::macCore = MacMap::macToUint64(corePeerMac);
 }
 
