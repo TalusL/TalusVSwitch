@@ -20,6 +20,15 @@
 #include <Poller/EventPoller.h>
 #include <Util/onceToken.h>
 
+#ifdef __linux__
+inline uint64_t htonll(uint64_t value) {
+    uint32_t high_part = htonl((uint32_t)(value >> 32));
+    uint32_t low_part = htonl((uint32_t)(value & 0xFFFFFFFF));
+
+    return ((uint64_t)high_part << 32) | low_part;
+}
+#endif
+
 #define MAC_BROADCAST htonll((uint64_t)0x0000FFFFFFFFFFFF)
 
 class MacMap{
