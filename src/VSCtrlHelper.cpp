@@ -146,7 +146,7 @@ void VSCtrlHelper::OnQueryPeerInfo(const toolkit::Buffer::Ptr &buf, const sockad
     // 填充本机信息
     resp->append(Config::localIp);
     resp->append(",");
-    resp->append(TapInterface::Instance().hwaddr());
+    resp->append(MacMap::uint64ToMacStr(MacMap::macToUint64(TapInterface::Instance().hwaddr())));
     // 返回信息
     Transport::Instance().send(resp,peer,addr_len, true,Config::sendTtl);
 }
