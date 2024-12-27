@@ -20,7 +20,7 @@
 #include <Poller/EventPoller.h>
 #include <Util/onceToken.h>
 
-#define MAC_BROADCAST (uint64_t)(0xFFFFFFFFFFFFFFFF << 16)
+#define MAC_BROADCAST htonll((uint64_t)0x0000FFFFFFFFFFFF)
 
 class MacMap{
 public:

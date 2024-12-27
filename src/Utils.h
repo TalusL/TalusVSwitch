@@ -92,7 +92,7 @@ inline toolkit::Buffer::Ptr compress(const toolkit::Buffer::Ptr & data) {
     defstream.zfree = Z_NULL;
     defstream.opaque = Z_NULL;
 
-    if (deflateInit(&defstream, Z_DEFAULT_COMPRESSION)!= Z_OK) {
+    if (deflateInit(&defstream, Z_BEST_COMPRESSION)!= Z_OK) {
         return {};
     }
 
@@ -123,7 +123,7 @@ inline toolkit::Buffer::Ptr decompress(const toolkit::Buffer::Ptr & compressedDa
 
     if(compressedData->size()){
         compressedData->data()[0] = 0x78;
-        compressedData->data()[1] = 0x9c;
+        compressedData->data()[1] = 0xda;
     }
     z_stream infstream;
     infstream.zalloc = Z_NULL;

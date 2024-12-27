@@ -10,6 +10,7 @@
 
 #include "VSCtrlHelper.h"
 #include <Network/Socket.h>
+#include "ArpMap.h"
 
 class Transport{
 public:

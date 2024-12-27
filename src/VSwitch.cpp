@@ -113,6 +113,9 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
                    << (int)ttl<<" size:"<<buf->size();
         }
 
+        // ARP检查
+        ArpMap::checkArp(buf,pktRecvPeer,addr_len,ttl);
+
         // TVS命令流量不写入网卡，只参与在各节点内部转发
         if (!isTvsCmd) {
             // 符合要求的流量送入虚拟网卡
