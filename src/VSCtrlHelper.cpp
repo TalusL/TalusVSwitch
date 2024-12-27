@@ -142,7 +142,7 @@ void VSCtrlHelper::OnQueryPeerInfo(const toolkit::Buffer::Ptr &buf, const sockad
     pMac = reinterpret_cast<char*>(&macLocal)+2;
     resp->append(pMac, 6);
     // 填充返回命令字
-    resp->append(TVS_CMD_QUERY_PEERS_RESPONSE",");
+    resp->append(TVS_CMD_QUERY_PEER_INFO_RESPONSE",");
     // 填充本机信息
     resp->append(Config::localIp);
     resp->append(",");
