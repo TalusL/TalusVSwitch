@@ -75,6 +75,8 @@ public:
     static void addArp(uint32_t ip, uint64_t mac) {
         std::lock_guard<std::mutex> lck(arpMutex());
         arpMap()[ip] = mac;
+        InfoL<<"New Arp "<<MacMap::uint64ToMacStr(mac)<<" - "<<(int)*((uint8_t*)&ip)<<"."<<(int)*((uint8_t*)&ip+1)
+        <<"."<<(int)*((uint8_t*)&ip+2)<<"."<<(int)*((uint8_t*)&ip+3);
     }
     static void delArp(uint32_t ip) {
         std::lock_guard<std::mutex> lck(arpMutex());
