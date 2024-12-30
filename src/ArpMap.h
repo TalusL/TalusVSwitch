@@ -71,6 +71,7 @@ public:
         erase_if(arpMap(), [mac](const auto& pair) {
             return pair.second == mac;
         });
+        InfoL<<"Del Arp MAC "<<MacMap::uint64ToMacStr(mac);
     }
     static void addArp(uint32_t ip, uint64_t mac) {
         std::lock_guard<std::mutex> lck(arpMutex());
@@ -81,6 +82,8 @@ public:
     static void delArp(uint32_t ip) {
         std::lock_guard<std::mutex> lck(arpMutex());
         arpMap().erase(ip);
+        InfoL<<"Del Arp "<<(int)*((uint8_t*)&ip)<<"."<<(int)*((uint8_t*)&ip+1)
+        <<"."<<(int)*((uint8_t*)&ip+2)<<"."<<(int)*((uint8_t*)&ip+3);
     }
 protected:
     static std::unordered_map<uint32_t, uint64_t> &arpMap() {
