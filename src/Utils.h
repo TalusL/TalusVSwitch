@@ -1,6 +1,8 @@
-﻿//
-// Created by liangzhuohua on 2024/8/20.
-//
+﻿/**
+ * @file Utils.h
+ * @brief 工具函数集合
+ * @details 提供各种通用工具函数，包括命令行解析、MAC地址获取、数据压缩等功能
+ */
 
 #ifndef TUNNEL_UTILS_H
 #define TUNNEL_UTILS_H
@@ -20,17 +22,24 @@
 #include <sys/wait.h>
 #endif
 
-
-
-
+/**
+ * @class CommandLineParser
+ * @brief 命令行参数解析器
+ * @details 解析命令行参数，支持 -key value 格式
+ */
 class CommandLineParser {
 public:
+    /**
+     * @brief 构造函数
+     * @param argc 参数数量
+     * @param argv 参数数组
+     */
     CommandLineParser(int argc, char* argv[]) {
         for (int i = 1; i < argc; ++i) {
             std::string arg = argv[i];
-            if (arg.size() > 2 && arg[0] == '-' && arg[1]!= '-') {
+            if (arg.size() > 2 && arg[0] == '-' && arg[1] != '-') {
                 std::string value;
-                if (i + 1 < argc && argv[i + 1][0]!= '-') {
+                if (i + 1 < argc && argv[i + 1][0] != '-') {
                     value = argv[i + 1];
                     ++i;
                 }
@@ -39,26 +48,36 @@ public:
         }
     }
 
+    /**
+     * @brief 获取选项值
+     * @param option 选项名
+     * @return std::string 选项值，如果不存在则返回空字符串
+     */
     std::string getOptionValue(const std::string& option) const {
         auto it = options.find(option);
-        return it!= options.end()? it->second : "";
+        return it != options.end() ? it->second : "";
     }
 
 private:
-    std::unordered_map<std::string, std::string> options;
+    std::unordered_map<std::string, std::string> options;  ///< 选项映射表
 };
 
+/**
+ * @brief 获取系统MAC地址
+ * @return std::string MAC地址字符串
+ * @details 在Unix系统上，遍历网络接口获取第一个有效的MAC地址
+ */
 inline std::string getMacAddress() {
-# ifdef __unix__
+#ifdef __unix__
     DIR* dir;
     struct dirent* ent;
     std::vector<std::string> interfaceNames;
 
     dir = opendir("/sys/class/net");
-    if (dir!= nullptr) {
-        while ((ent = readdir(dir))!= nullptr) {
+    if (dir != nullptr) {
+        while ((ent = readdir(dir)) != nullptr) {
             std::string name(ent->d_name);
-            if (name!= "." && name!= ".." && name!= "lo") {
+            if (name != "." && name != ".." && name != "lo") {
                 interfaceNames.push_back(name);
             }
         }
@@ -81,18 +100,22 @@ inline std::string getMacAddress() {
         }
     }
 #endif
-
     return "";
 }
 
-
-inline toolkit::Buffer::Ptr compress(const toolkit::Buffer::Ptr & data) {
+/**
+ * @brief 压缩数据
+ * @param data 要压缩的数据
+ * @return toolkit::Buffer::Ptr 压缩后的数据
+ * @details 使用zlib进行数据压缩
+ */
+inline toolkit::Buffer::Ptr compress(const toolkit::Buffer::Ptr& data) {
     z_stream defstream;
     defstream.zalloc = Z_NULL;
     defstream.zfree = Z_NULL;
     defstream.opaque = Z_NULL;
 
-    if (deflateInit(&defstream, Z_BEST_COMPRESSION)!= Z_OK) {
+    if (deflateInit(&defstream, Z_BEST_COMPRESSION) != Z_OK) {
         return {};
     }
 
@@ -110,21 +133,28 @@ inline toolkit::Buffer::Ptr compress(const toolkit::Buffer::Ptr & data) {
             return {};
         }
 
-        compressedData->append(reinterpret_cast<const char *>(outBuffer), sizeof(outBuffer) - defstream.avail_out);
+        compressedData->append(reinterpret_cast<const char*>(outBuffer), 
+                             sizeof(outBuffer) - defstream.avail_out);
     } while (defstream.avail_out == 0);
 
-    if (deflateEnd(&defstream)!= Z_OK) {
+    if (deflateEnd(&defstream) != Z_OK) {
         return {};
     }
     return compressedData;
 }
 
-inline toolkit::Buffer::Ptr decompress(const toolkit::Buffer::Ptr & compressedData) {
-
-    if(compressedData->size()){
+/**
+ * @brief 解压数据
+ * @param compressedData 要解压的数据
+ * @return toolkit::Buffer::Ptr 解压后的数据
+ * @details 使用zlib进行数据解压缩
+ */
+inline toolkit::Buffer::Ptr decompress(const toolkit::Buffer::Ptr& compressedData) {
+    if (compressedData->size()) {
         compressedData->data()[0] = 0x78;
         compressedData->data()[1] = 0xda;
     }
+
     z_stream infstream;
     infstream.zalloc = Z_NULL;
     infstream.zfree = Z_NULL;
@@ -132,7 +162,7 @@ inline toolkit::Buffer::Ptr decompress(const toolkit::Buffer::Ptr & compressedDa
     infstream.avail_in = 0;
     infstream.next_in = Z_NULL;
 
-    if (inflateInit(&infstream)!= Z_OK) {
+    if (inflateInit(&infstream) != Z_OK) {
         return {};
     }
 
@@ -146,33 +176,40 @@ inline toolkit::Buffer::Ptr decompress(const toolkit::Buffer::Ptr & compressedDa
         infstream.next_out = outBuffer;
 
         int ret = inflate(&infstream, 0);
-        if (ret == Z_STREAM_ERROR || (ret < 0 && ret!= Z_DATA_ERROR)) {
+        if (ret == Z_STREAM_ERROR || (ret < 0 && ret != Z_DATA_ERROR)) {
             inflateEnd(&infstream);
             return {};
         }
 
-        decompressedData->append(reinterpret_cast<const char *>(outBuffer),  sizeof(outBuffer) - infstream.avail_out);
+        decompressedData->append(reinterpret_cast<const char*>(outBuffer), 
+                               sizeof(outBuffer) - infstream.avail_out);
     } while (infstream.avail_out == 0);
 
-    if (inflateEnd(&infstream)!= Z_OK) {
+    if (inflateEnd(&infstream) != Z_OK) {
         return {};
     }
     return decompressedData;
 }
 
+/**
+ * @brief 比较两个网络地址是否相同
+ * @param addr1 第一个地址
+ * @param addr2 第二个地址
+ * @return bool 是否相同
+ * @details 支持IPv4、IPv6和IPv4映射到IPv6的地址比较
+ */
 inline bool compareSockAddr(const sockaddr_storage& addr1, const sockaddr_storage& addr2) {
-    // 确定地址族
     bool isAddr1V4Mapped = false;
     bool isAddr2V4Mapped = false;
 
     if (addr1.ss_family == AF_INET6) {
-        isAddr1V4Mapped = IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)&addr1)->sin6_addr);
+        isAddr1V4Mapped = IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6*)&addr1)->sin6_addr);
     }
     if (addr2.ss_family == AF_INET6) {
-        isAddr2V4Mapped = IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)&addr2)->sin6_addr);
+        isAddr2V4Mapped = IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6*)&addr2)->sin6_addr);
     }
 
-    // 如果两个都是 IPv4
+    // IPv4地址比较
     if (addr1.ss_family == AF_INET && addr2.ss_family == AF_INET) {
         const auto* addr1_in = reinterpret_cast<const sockaddr_in*>(&addr1);
         const auto* addr2_in = reinterpret_cast<const sockaddr_in*>(&addr2);
@@ -180,7 +217,7 @@ inline bool compareSockAddr(const sockaddr_storage& addr1, const sockaddr_storag
                (addr1_in->sin_port == addr2_in->sin_port);
     }
 
-    // 如果一个是 IPv4，一个是 V4 映射 IPv6
+    // IPv4映射到IPv6的地址比较
     if (isAddr2V4Mapped && addr1.ss_family == AF_INET) {
         const auto* addr1_in = reinterpret_cast<const sockaddr_in*>(&addr1);
         const auto* addr2_in6 = reinterpret_cast<const sockaddr_in6*>(&addr2);
@@ -197,7 +234,7 @@ inline bool compareSockAddr(const sockaddr_storage& addr1, const sockaddr_storag
                (addr1_in6->sin6_port == addr2_in->sin_port);
     }
 
-    // IPv6 地址比较
+    // IPv6地址比较
     if (addr1.ss_family == AF_INET6 && addr2.ss_family == AF_INET6) {
         const auto* addr1_in6 = reinterpret_cast<const sockaddr_in6*>(&addr1);
         const auto* addr2_in6 = reinterpret_cast<const sockaddr_in6*>(&addr2);
@@ -214,15 +251,17 @@ inline bool compareSockAddr(const sockaddr_storage& addr1, const sockaddr_storag
                    (addr1_in6->sin6_port == addr2_in6->sin6_port);
         }
 
-        // 如果两个都是普通的 IPv6 地址，进行直接比较
         return (memcmp(&addr1_in6->sin6_addr, &addr2_in6->sin6_addr, sizeof(addr1_in6->sin6_addr)) == 0) &&
                (addr1_in6->sin6_port == addr2_in6->sin6_port);
     }
 
-    // 不支持的地址族
     return false;
 }
 
+/**
+ * @brief 启动守护进程
+ * @details 在Unix系统上实现进程守护，Windows上此函数无效
+ */
 inline void startDaemon() {
     auto kill_parent_if_failed = true;
 #ifndef _WIN32
@@ -231,17 +270,16 @@ inline void startDaemon() {
         pid = fork();
         if (pid == -1) {
             WarnL << "fork fail";
-            //休眠1秒再试
             sleep(1);
             continue;
         }
 
         if (pid == 0) {
-            //子进程
+            // 子进程
             return;
         }
 
-        //父进程,监视子进程是否退出
+        // 父进程监视子进程
         DebugL << "启动子进程:" << pid;
         signal(SIGINT, [](int) {
             WarnL << "收到主动退出信号,关闭父进程与子进程";
@@ -253,16 +291,14 @@ inline void startDaemon() {
             int status = 0;
             if (waitpid(pid, &status, 0) >= 0) {
                 WarnL << "子进程退出";
-                //休眠3秒再启动子进程
                 sleep(3);
-                //重启子进程，如果子进程重启失败，那么不应该杀掉守护进程，这样守护进程可以一直尝试重启子进程
                 kill_parent_if_failed = false;
                 break;
             }
             DebugL << "waitpid fail";
         } while (true);
     } while (true);
-#endif // _WIN32
+#endif
 }
 
-#endif//TUNNEL_UTILS_H
+#endif //TUNNEL_UTILS_H

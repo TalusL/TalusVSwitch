@@ -1,4 +1,3 @@
-
 #include "LinkKeeper.h"
 #include "MacMap.h"
 #include "TapInterface.h"
@@ -16,42 +15,46 @@
 
 
 int main(int argc, char* argv[]) {
-
+    // 解析命令行参数
     CommandLineParser parser(argc,argv);
-
+    
+    // 设置调试模式
     Config::debug = atoi(parser.getOptionValue("debug").c_str());
 
+    // 配置日志系统
     if(!Config::debug){
-        // 守护进程
+        // 非调试模式下运行为守护进程
         startDaemon();
-        // 日志级别
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", LogLevel::LInfo));
     }else{
-        // 日志级别
+        // 调试模式下显示更详细的日志
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", LogLevel::LTrace));
     }
+    // 使用异步日志写入器
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
-    // 构建虚拟接口
+    // 配置虚拟网络接口
     Config::interfaceName = parser.getOptionValue("name");
     Config::interfaceName = Config::interfaceName.empty()?"tvs0":Config::interfaceName;
     TapInterface::Instance().name(Config::interfaceName);
     InfoL<<"Interface name "<<Config::interfaceName;
 
-    // 获取本地MAC地址
+    // 配置MAC地址
     auto mac = parser.getOptionValue("mac");
     if(mac.empty()){
+        // 如果未指定MAC地址，则自动生成
         mac = getMacAddress();
         mac = std::string().append(MAC_VENDOR).append(mac.substr(8,10));
     }
     TapInterface::Instance().hwaddr(mac);
-
+    
+    // 存储本地MAC地址
     Config::macLocal = MacMap::macToUint64(TapInterface::Instance().hwaddr());
     InfoL<<"Local mac "<<MacMap::uint64ToMacStr(Config::macLocal);
 
-    // mtu
+    // 配置MTU大小
     auto mtuStr = parser.getOptionValue("mtu");
-    Config::mtu = 1400;
+    Config::mtu = 1400;  // 默认MTU值
     if(!mtuStr.empty()){
         Config::mtu = stoi(mtuStr);
     }
@@ -121,25 +124,18 @@ int main(int argc, char* argv[]) {
     Config::corePeer = toolkit::SockUtil::make_sockaddr(remoteAddr.c_str(),remotePort);
     MacMap::addMacPeer(MAC_BROADCAST, Config::corePeer,Config::sendTtl);
 
-    // 监听传输
-    Transport::Instance().start(localPort);
+    // 启动各个组件
+    Transport::Instance().start(localPort);    // 启动传输层
+    VSwitch::start();                         // 启动虚拟交换机
+    LinkKeeper::start();                      // 启动链路保持
+    VSCtrlHelper::Instance().Start();         // 启动控制助手
 
-    // 启动交换
-    VSwitch::start();
-
-    // 保持链路
-    LinkKeeper::start();
-
-    VSCtrlHelper::Instance().Start();
-
-    // 设置退出信号处理函数
+    // 设置信号处理，优雅退出
     static semaphore sem;
     signal(SIGINT, [](int) {
         InfoL << "SIGINT:exit";
-        signal(SIGINT, SIG_IGN); // 设置退出信号
+        signal(SIGINT, SIG_IGN);
         sem.post();
-    }); // 设置退出信号
+    });
     sem.wait();
-
-
 }

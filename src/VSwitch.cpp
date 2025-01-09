@@ -1,6 +1,8 @@
-﻿//
-// Created by liangzhuohua on 2024/8/28.
-//
+﻿/**
+ * @file VSwitch.cpp
+ * @brief 虚拟交换机核心实现
+ * @details 实现了虚拟交换机的数据转发和处理功能
+ */
 
 #include "VSwitch.h"
 #include "MacMap.h"
@@ -14,32 +16,34 @@
 #include <memory>
 #include "Config.h"
 
-
+/**
+ * @namespace Config
+ * @brief 全局配置参数
+ */
 namespace Config{
-    volatile bool debug = false;
-
-    uint8_t sendTtl = 8;
-
-    sockaddr_storage corePeer;
-
-    uint64_t macLocal;
-
-    uint64_t macCore;
-
-    std::string interfaceName;
-
-    std::string localIp;
-
-    int mask = 24;
-
-    int mtu;
-
-    bool enableP2p = true;
+    volatile bool debug = false;         ///< 调试模式标志
+    uint8_t sendTtl = 8;                ///< 发送TTL值
+    sockaddr_storage corePeer;          ///< 核心节点地址
+    uint64_t macLocal;                  ///< 本地MAC地址
+    uint64_t macCore;                   ///< 核心节点MAC地址
+    std::string interfaceName;          ///< 接口名称
+    std::string localIp;                ///< 本地IP地址
+    int mask = 24;                      ///< 子网掩码
+    int mtu;                            ///< MTU大小
+    bool enableP2p = true;              ///< P2P功能开关
 };
 
+// 静态成员初始化
 volatile bool VSwitch::m_running = false;
 std::shared_ptr<toolkit::ThreadPool> VSwitch::m_thread;
 
+/**
+ * @brief 启动虚拟交换机
+ * @details 
+ * 1. 初始化运行状态
+ * 2. 设置网络事件处理
+ * 3. 启动接口轮询线程
+ */
 void VSwitch::start() {
     m_running = true;
     // 处理线程
@@ -57,6 +61,16 @@ void VSwitch::start() {
     },false);
 }
 
+/**
+ * @brief 处理广播数据包
+ * @param buf 数据包内容
+ * @param pktRecvPeer 数据包来源地址
+ * @param ttl 生存时间
+ * @details 
+ * 1. 解析源和目标MAC地址
+ * 2. 维护已发送节点列表，避免重复发送
+ * 3. 根据节点类型设置不同的TTL
+ */
 void VSwitch::sendBroadcast(const toolkit::Buffer::Ptr& buf,const sockaddr_storage& pktRecvPeer,uint8_t ttl) {
     uint64_t sMac = *(uint64_t*)(buf->data()+6);
     sMac = sMac<<16;
@@ -95,6 +109,16 @@ void VSwitch::sendBroadcast(const toolkit::Buffer::Ptr& buf,const sockaddr_stora
     });
 }
 
+/**
+ * @brief 设置网络数据接收回调
+ * @param corePeer 核心节点地址
+ * @param macLocal 本地MAC地址
+ * @details 处理接收到的数据包：
+ * 1. 解析MAC地址
+ * 2. 处理ARP请求
+ * 3. 转发数据包
+ * 4. 更新MAC表
+ */
 void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLocal) {
     Transport::Instance().setOnRead([macLocal, corePeer](const toolkit::Buffer::Ptr &buf,
         const sockaddr_storage& pktRecvPeer, int addr_len,uint8_t ttl,bool isTvsCmd){
@@ -167,12 +191,25 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
         }
     });
 }
+
+/**
+ * @brief 停止虚拟交换机
+ * @details 清理资源并停止数据处理
+ */
 void VSwitch::stop() {
     m_running = false;
     Transport::Instance().setOnRead(nullptr);
 }
 
-
+/**
+ * @brief 轮询TAP接口数据
+ * @param buf 数据缓冲区
+ * @details 
+ * 1. 从TAP接口读取数据
+ * 2. 解析MAC地址
+ * 3. 查找目标节点
+ * 4. 转发数据包
+ */
 void VSwitch::pollInterface(const std::shared_ptr<std::vector<uint8_t>>& buf) {
     // 从虚拟网卡接收数据
     size_t len = buf->size();
