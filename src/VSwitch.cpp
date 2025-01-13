@@ -197,8 +197,10 @@ void VSwitch::setupOnPeerInput(const sockaddr_storage &corePeer, uint64_t macLoc
  * @details 清理资源并停止数据处理
  */
 void VSwitch::stop() {
-    m_running = false;
-    Transport::Instance().setOnRead(nullptr);
+    if (m_running) {
+        m_running = false;
+        Transport::Instance().setOnRead(nullptr);
+    }
 }
 
 /**
