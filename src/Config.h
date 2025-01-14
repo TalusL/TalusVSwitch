@@ -21,6 +21,7 @@ namespace Config {
     extern uint64_t macCore;          ///< 核心节点MAC地址
     extern int mtu;                   ///< 最大传输单元
     extern std::string localIp;       ///< 本地IP地址
+    extern std::string coreIp;       ///< 远端IP地址
     extern int mask;                  ///< 子网掩码
     extern bool enableP2p;            ///< 是否启用P2P功能
 };
