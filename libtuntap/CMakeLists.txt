@@ -26,7 +26,7 @@ set(${CMAKE_SYSTEM_NAME} True)
 
 # Tuntap library declaration and portable source files
 # --------------------------
-add_library(tuntap
+add_library(tuntap STATIC
             tuntap.c
             tuntap.h
             tuntap_log.c

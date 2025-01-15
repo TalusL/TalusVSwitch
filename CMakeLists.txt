@@ -29,4 +29,4 @@ add_executable(TalusVSwitch
         src/VSCtrlHelper.cpp
         src/webapi/ApiServer.cpp
 )
-target_link_libraries(TalusVSwitch tuntap++ tuntap z ZLToolKit_static)
+target_link_libraries(TalusVSwitch tuntap++ tuntap z ZLToolKit_static jsoncpp_static)
