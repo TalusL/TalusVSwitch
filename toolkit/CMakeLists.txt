@@ -40,7 +40,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 #设置子目录
 #Set subdirectories
-set(SUB_DIR_LIST "Network" "Poller" "Thread" "Util")
+set(SUB_DIR_LIST "Network" "Poller" "Thread" "Util" "Http" "Common")
 
 if(WIN32)
     list(APPEND SUB_DIR_LIST "win32")
