@@ -6,7 +6,12 @@
 
 
 class ApiServer {
-
+public:
+    static ApiServer& Instance() {
+        static ApiServer vsCtrlHelper;
+        return vsCtrlHelper;
+    }
+    bool Start();
 };
 
 
