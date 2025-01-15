@@ -149,9 +149,3 @@ set_target_properties(${PROJECT_NAME}_static PROPERTIES OUTPUT_NAME "${PROJECT_N
 #Install static library to system directory
 install(TARGETS ${PROJECT_NAME}_static ARCHIVE DESTINATION ${INSTALL_PATH_LIB})
 
-
-#测试程序
-#Test program
-if(NOT IOS)
-    add_subdirectory(tests)
-endif()

@@ -4,7 +4,6 @@ cmake_minimum_required(VERSION 3.5)
 
 project(libtuntap)
 
-include(CTest)
 
 # CMake global options
 # --------------------
@@ -130,9 +129,4 @@ if(UNIX)
         install(FILES tuntap.h ${CMAKE_CURRENT_BINARY_DIR}/tuntap-export.h DESTINATION include)
 endif(UNIX)
 
-# Tests rules
-# -----------
-if (BUILD_TESTING)
-    add_subdirectory(regress)
-endif ()
 

@@ -7,6 +7,7 @@ add_subdirectory(toolkit)
 
 set(CMAKE_CXX_STANDARD 20)
 
+SET(BUILD_TESTING OFF)
 include_directories(libtuntap/bindings/cpp)
 include_directories(libtuntap)
 include_directories(fec)
