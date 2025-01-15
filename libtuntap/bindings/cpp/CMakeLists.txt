@@ -3,7 +3,7 @@
 
 # tuntap++ declaration
 # --------------------
-add_library(tuntap++ tuntap++.cc tuntap++.hh)
+add_library(tuntap++ STATIC tuntap++.cc tuntap++.hh)
 
 target_include_directories(tuntap++ PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
